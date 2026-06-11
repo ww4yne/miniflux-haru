@@ -1,0 +1,594 @@
+/* ============================================================
+   Miniflux 自定义 CSS（v2.4 兼容版 + 移动端 header 修复）
+   · Claude.ai 配色（亮/暗自动跟随 Miniflux 主题）
+   · 全站统一限宽 768px
+   · 紧凑布局只作用于条目列表（article.entry-item）/ 详情（.entry-header）
+   · 源管理 / 设置 / 分类等管理页保持 Miniflux 原始布局
+   粘贴到 Settings → Custom CSS
+   ============================================================ */
+
+/* ---------- Haru 同款色板（移植自 chat.wenb.in）----------
+   优先级：html.mf-dark（JS 探测） > @media OS dark :root:not(.mf-light) > :root */
+:root {
+  --bg:         #F3F0E8;
+  --bg2:        #FFFFFF;
+  --bg3:        #EAE7DF;
+  --bg4:        #DDD9D0;
+  --text:       #1A1915;
+  --text2:      #6B6560;
+  --text3:      #9C958C;
+  --accent:     #B0584A;
+  --accent-h:   #9C4D40;
+  --accent-dim: rgba(176,88,74,0.10);
+  --accent-bd:  rgba(176,88,74,0.30);
+  /* 旧 --c-* 别名（兼容下方既有规则）—— muted 升级为高对比 text2，sep 改用 bg3 */
+  --c-bg:     var(--bg);
+  --c-text:   var(--text);
+  --c-muted:  var(--text2);
+  --c-accent: var(--accent);
+  --c-sep:    var(--bg3);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.mf-light) {
+    --bg:         #2A2520;
+    --bg2:        #352F29;
+    --bg3:        #3D362F;
+    --bg4:        #4A433B;
+    --text:       #ECE8E1;
+    --text2:      #A39E96;
+    --text3:      #706B63;
+    --accent:     #C46B5B;
+    --accent-h:   #D87C6D;
+    --accent-dim: rgba(196,107,91,0.12);
+    --accent-bd:  rgba(196,107,91,0.30);
+  }
+}
+html.mf-dark {
+  --bg:         #2A2520;
+  --bg2:        #352F29;
+  --bg3:        #3D362F;
+  --bg4:        #4A433B;
+  --text:       #ECE8E1;
+  --text2:      #A39E96;
+  --text3:      #706B63;
+  --accent:     #C46B5B;
+  --accent-h:   #D87C6D;
+  --accent-dim: rgba(196,107,91,0.12);
+  --accent-bd:  rgba(196,107,91,0.30);
+}
+
+/* ---------- 全站骨架：配色 + 限宽 ---------- */
+html, body { background: var(--c-bg) !important; }
+html {
+  /* 提前给滚动条占位，避免内容变长 / 变短时整个 body 居中偏移 */
+  scrollbar-gutter: stable !important;
+}
+body {
+  color: var(--c-text) !important;
+  max-width: 768px !important;
+  margin: 0 auto !important;
+}
+
+/* ============================================================
+   顶部 header 菜单（v2.4 升级后默认显示文字 + 计数器，精简为图标）
+   桌面 / 移动 均：logo 左 + 菜单图标右，单行排列
+   ============================================================ */
+/* header 容器：margin 上下各 10px，padding 归零 */
+.header {
+  padding: 0 !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+}
+.header nav {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+.header .logo {
+  flex-shrink: 0 !important;
+  margin-right: auto !important;
+  white-space: nowrap !important;
+}
+.header .logo a {
+  font-size: 14px !important;          /* 窄屏 logo 再小 */
+}
+/* 隐藏 logo 后面的 dropdown chevron（miniflux 把它当窄屏 toggle 用，禁用） */
+.header .logo > svg { display: none !important; }
+
+#header-menu {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 0 1 auto !important;
+  flex-wrap: nowrap !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  /* overflow visible：让未读 badge 可以溢出 li 顶部不被裁。
+     图标数量固定且少，窄屏也放得下，不需要横滚 */
+  overflow: visible !important;
+}
+#header-menu li { margin: 0 !important; padding: 0 !important; flex-shrink: 0 !important; }
+/* 隐藏空 li（separator / 占位）：没有 a/button/form 子元素的就 display:none */
+#header-menu li:empty,
+#header-menu li.separator,
+#header-menu li:not(:has(a, button, form)) {
+  display: none !important;
+}
+/* 隐藏整个登出 li（用不到，省一个图标位） */
+#header-menu li:has(form.logout-form),
+#header-menu li:has(.logout-button) {
+  display: none !important;
+}
+/* form 包着 button 的项：万一以后还有其他 form 项，确保居中对齐 */
+#header-menu li form {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+#header-menu li a,
+#header-menu li button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px 5px !important;
+  color: var(--c-muted) !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+#header-menu li.active a { color: var(--c-accent) !important; }
+#header-menu li a:hover,
+#header-menu li button:hover { color: var(--c-text) !important; }
+/* 隐藏菜单里所有文字节点 + 计数器，只保留 svg 图标 */
+#header-menu a,
+#header-menu button { font-size: 0 !important; }
+#header-menu a > svg,
+#header-menu button > svg {
+  font-size: 14px !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+/* a/button 内部任何子元素（icon-label / 形容词 span 等）都不占宽度
+   ── 例外：保留 unread-counter-wrapper（未读总数） */
+#header-menu li a > *:not(svg):not(.unread-counter-wrapper),
+#header-menu li button > *:not(svg) {
+  display: none !important;
+}
+/* 「订阅源」li 里的第二个 a（/subscribe "(+)" 快捷按钮）干掉 */
+#header-menu li > a + a { display: none !important; }
+/* 兜底：所有 a/button 自身宽度紧贴 svg；padding 由父级给定 */
+#header-menu li a,
+#header-menu li button {
+  width: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+/* 未读总数：作为图标右上角小 badge（仅桌面） */
+#header-menu li a { position: relative !important; }
+#header-menu .unread-counter-wrapper {
+  display: inline-block !important;
+  position: absolute !important;
+  top: -2px !important;
+  right: -4px !important;
+  background: var(--c-accent) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  padding: 0 4px !important;
+  min-width: 14px !important;
+  height: 14px !important;
+  line-height: 14px !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  font-style: normal !important;
+}
+/* wrapper 里的"("、")"字符隐藏，只显示数字 span */
+#header-menu .unread-counter-wrapper { font-size: 0 !important; }
+#header-menu .unread-counter {
+  display: inline-block !important;
+  font-size: 9px !important;
+  color: white !important;
+}
+/* 手机屏：彻底隐藏 unread counter（iOS absolute 在窄屏不稳） */
+@media (max-width: 720px) {
+  #header-menu .unread-counter-wrapper { display: none !important; }
+}
+
+/* ============================================================
+   仅阅读页（条目列表 / 详情）的规则
+   ============================================================ */
+
+/* 阅读页隐藏：页头 / 顶部分页 / 首末页按钮 / 分类 / 标签 / 详情头来源 favicon
+   注：保留 .page-footer，用于显示原生「标记本页为已读」按钮 */
+body:where(:has(article.entry-item), :has(.entry-header)) :where(
+  .page-header, .pagination-top,
+  .pagination-first, .pagination-last,
+  .category, .entry-tags, .entry-website img
+) {
+  display: none !important;
+}
+/* page-footer 隐藏（原生「标记本页为已读」按钮已被 JS 搬进底部 .pagination）*/
+body:where(:has(article.entry-item), :has(.entry-header)) .page-footer {
+  display: none !important;
+}
+
+/* .entry-date 仅在列表页隐藏（详情页要保留） */
+body:has(article.entry-item) .entry-date { display: none !important; }
+
+/* ============================================================
+   紧凑化：压掉 miniflux 模板默认的容器空白
+   （main / .items / .entry / .pagination 上下间距）
+   ============================================================ */
+body:where(:has(article.entry-item), :has(.entry-header)) main {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+body:has(article.entry-item) .items,
+body:has(.entry-header) .entry {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* 分页区上下间距压成 6px，原模板是 1em ≈ 16px */
+body:where(:has(article.entry-item), :has(.entry-header)) .pagination {
+  margin-top: 6px !important;
+  margin-bottom: 6px !important;
+  padding: 0 !important;
+}
+/* 列表页底部 pagination（含「标记本页」按钮）稍微再松一点，避免误触 */
+body:has(article.entry-item) .pagination {
+  margin-top: 8px !important;
+  margin-bottom: 8px !important;
+}
+/* 阅读页正文段落间距压一档（默认 1em，改 0.7em）*/
+.entry-content > :where(p, ul, ol, blockquote, pre) {
+  margin-top: 0.7em !important;
+  margin-bottom: 0.7em !important;
+}
+.entry-content > :first-child { margin-top: 0 !important; }
+.entry-content > :last-child { margin-bottom: 0 !important; }
+
+/* ============================================================
+   条目列表（article.entry-item 限定，不会污染 feed-item）
+   ============================================================ */
+
+/* 条目：紧凑 padding + 去虚线/边框/阴影；hover/active 给轻量背景反馈 */
+article.entry-item {
+  position: relative;
+  margin: 0 !important;
+  padding: 5px 14px 5px 18px !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: background 0.12s ease !important;
+}
+@media (hover: hover) {
+  article.entry-item:hover { background: var(--bg3) !important; }
+}
+article.entry-item.item-current { background: var(--bg3) !important; }
+article.entry-item + article.entry-item {
+  border-top: 1px solid var(--bg3) !important;
+}
+
+/* 左侧色块：未读橙、上下留 2px 间隙 */
+article.entry-item::before {
+  content: "";
+  position: absolute;
+  left: 6px; top: 2px; bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+}
+article.entry-item.item-status-unread::before {
+  background: var(--c-accent);
+}
+
+/* 条目内部：只显示标题（隐藏元信息块、原 favicon img） */
+article.entry-item .item-meta,
+article.entry-item .item-title img {
+  display: none !important;
+}
+article.entry-item .item-header,
+article.entry-item .item-title {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 字母方块（替代 favicon）：绝对定位垂直居中，不参与 ellipsis 流 */
+article.entry-item .item-title a[data-icon-letter]::before {
+  content: attr(data-icon-letter);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  border-radius: 3px;
+  background: var(--bg3);
+  color: var(--text2);
+  text-transform: uppercase;
+}
+
+/* 标题：block + ellipsis 单行截断；左侧 padding 给字母方块腾位 */
+article.entry-item .item-title a,
+article.entry-item .item-title a:is(:hover, :focus, :active) {
+  display: block !important;
+  position: relative !important;
+  padding-left: 24px !important;        /* 16px 图标 + 8px 间距 */
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 16px !important;
+  line-height: 1.3 !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  color: var(--c-text) !important;
+}
+article.entry-item.item-status-read .item-title a,
+article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
+  font-weight: 400 !important;
+  color: var(--c-muted) !important;
+}
+
+/* ============================================================
+   条目详情头（.entry-header 限定）
+   ============================================================ */
+
+.entry-header {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 4px 10px !important;
+  padding: 0 !important;
+  margin: 0 0 14px 0 !important;
+}
+.entry-header,
+.entry-header * { font-style: normal !important; }
+
+/* 标题：独占一行居中，比正文显著大一圈 */
+.entry-header h1 {
+  flex: 1 0 100% !important;
+  margin: 0 0 6px 0 !important;
+  text-align: center !important;
+}
+.entry-header h1,
+.entry-header h1 a {
+  font-size: 22px !important;
+  line-height: 1.3 !important;
+  font-weight: 600 !important;
+  color: var(--c-text) !important;
+}
+
+/* 操作 / 来源 同行；来源靠右；字号行高统一 */
+.entry-header .entry-actions,
+.entry-header .entry-meta {
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--c-muted) !important;
+}
+.entry-header .entry-meta { margin-left: auto !important; }
+
+.entry-header .entry-actions,
+.entry-header .entry-actions *,
+.entry-header .entry-meta,
+.entry-header .entry-meta * {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+/* 操作按钮列表：紧贴左边缘、纯文本风 */
+.entry-header .entry-actions ul {
+  display: inline-flex !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+.entry-header .entry-actions :is(li, .page-button, .page-link) {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* 隐藏：分享 / 外部链接 / 抓取全文 / v2.4 新增的 URL 全文 link */
+.entry-actions li:is(
+  :has(a[data-share-status]),
+  :has(a[data-original-link]),
+  :has(button[data-fetch-content-entry]),
+  :has(form[action*="/entry/share/"])
+) {
+  display: none !important;
+}
+.entry-header .entry-external-link { display: none !important; }
+
+/* ============================================================
+   分页区（v2.4 新加 .elevator「返回顶部」与自定义"回到列表"冲突）
+   ============================================================ */
+.pagination .elevator { display: none !important; }
+/* 分页文字小一点：上一页 / 下一页 / 回到列表 / 标记本页为已读 (relocated) */
+.pagination,
+.pagination a,
+.pagination button,
+.pagination .pagination-prev,
+.pagination .pagination-next,
+.pagination .pagination-prev a,
+.pagination .pagination-next a,
+.pagination [id^="mf-back-btn"],
+.pagination .mf-mark-page-wrap a,
+.pagination .mf-mark-page-wrap button {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+/* relocated 按钮：纯文本、accent 色，与左右分页一致 */
+.pagination .mf-mark-page-wrap a,
+.pagination .mf-mark-page-wrap button {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: var(--c-accent) !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+}
+
+
+/* ============================================================
+   阅读模式（.entry-content 限定）
+   统一所有 source 正文风格：字号、缩进、对齐、heading 4 档、
+   blockquote / code / list / table / hr / link 全部归一
+   ============================================================ */
+
+/* A. 文本基础 */
+.entry-content {
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  color: var(--text) !important;
+  text-align: justify !important;
+  text-justify: inter-ideograph !important;
+  hyphens: auto !important;
+}
+@media (min-width: 720px) {
+  .entry-content {
+    font-size: 17px !important;
+    line-height: 1.8 !important;
+  }
+}
+
+/* B. 段落 */
+.entry-content p {
+  margin: 0 0 0.8em !important;
+  text-indent: 0;
+}
+.entry-content > p { text-indent: 2em !important; }
+.entry-content > p:last-child { margin-bottom: 0 !important; }
+.entry-content :is(li, blockquote, td) > p { text-indent: 0 !important; }
+.entry-content p:empty { display: none !important; }
+.entry-content br + br { display: none !important; }
+
+/* C. Heading 4 档归一 */
+.entry-content :is(h1, h2, h3, h4, h5, h6) {
+  text-indent: 0 !important;
+  font-family: inherit !important;
+}
+.entry-content h1 { font-size: 20px !important; font-weight: 600 !important; margin: 1.2em 0 0.5em !important; }
+.entry-content h2 { font-size: 18px !important; font-weight: 600 !important; margin: 1.2em 0 0.4em !important; }
+.entry-content h3 { font-size: 16px !important; font-weight: 700 !important; margin: 1em 0 0.3em !important; }
+.entry-content :is(h4, h5, h6) { font-size: 15px !important; font-weight: 600 !important; margin: 0.8em 0 0.3em !important; }
+
+/* D. 图片 + figure */
+.entry-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0.8em auto !important;
+  border-radius: 4px !important;
+}
+.entry-content figure { margin: 0.8em 0 !important; }
+.entry-content figcaption {
+  text-align: center !important;
+  font-size: 12px !important;
+  color: var(--text2) !important;
+  margin-top: 4px !important;
+}
+/* 行内图片兜底（emoji-like，engine 漏的）：行内上下文中 img 限 1.4em */
+.entry-content :is(p, li, td, h1, h2, h3, h4, h5, h6) > img:not([width]):not([height]) {
+  max-height: 1.4em !important;
+  width: auto !important;
+  display: inline !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+
+/* E. 引用块 */
+.entry-content blockquote {
+  margin: 0.8em 0 !important;
+  padding: 6px 12px !important;
+  border-left: 3px solid var(--accent) !important;
+  background: var(--bg2) !important;
+  color: var(--text2) !important;
+}
+
+/* F. 代码 */
+.entry-content pre {
+  background: var(--bg3) !important;
+  padding: 10px !important;
+  border-radius: 4px !important;
+  overflow-x: auto !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+.entry-content :not(pre) > code {
+  background: var(--bg3) !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  font-size: 0.9em !important;
+}
+.entry-content pre code {
+  background: transparent !important;
+  padding: 0 !important;
+}
+/* 保留 syntax highlight 颜色（hljs / prism / Pygments） */
+.entry-content pre code [class*="hljs"],
+.entry-content pre code [class*="language-"],
+.entry-content pre code span {
+  color: revert !important;
+  background: revert !important;
+}
+
+/* G. 链接 */
+.entry-content a {
+  color: var(--accent) !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2px !important;
+}
+.entry-content a:hover { color: var(--accent-h) !important; }
+
+/* H. 列表 */
+.entry-content :is(ul, ol) {
+  padding-left: 1.6em !important;
+  margin: 0.6em 0 !important;
+}
+.entry-content li { margin: 0.2em 0 !important; }
+
+/* I. 表格（窄屏内滚） */
+.entry-content table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 0.8em 0 !important;
+  font-size: 14px !important;
+  display: block !important;
+  overflow-x: auto !important;
+}
+.entry-content :is(th, td) {
+  border: 1px solid var(--bg3) !important;
+  padding: 6px 10px !important;
+  text-align: left !important;
+}
+.entry-content th {
+  background: var(--bg3) !important;
+  font-weight: 600 !important;
+}
+
+/* J. 水平线、嵌入、清洁 */
+.entry-content hr {
+  border: 0 !important;
+  border-top: 1px solid var(--bg3) !important;
+  margin: 1.2em 0 !important;
+}
+.entry-content iframe { max-width: 100% !important; }
+.entry-content [style] { font-family: inherit !important; }
