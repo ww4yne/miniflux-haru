@@ -455,7 +455,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
 /* A. 文本基础 */
 .entry-content {
   font-size: 16px !important;
-  line-height: 1.75 !important;
+  line-height: 1.65 !important;
   color: var(--text) !important;
   text-align: justify !important;
   text-justify: inter-ideograph !important;
@@ -464,13 +464,13 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
 @media (min-width: 720px) {
   .entry-content {
     font-size: 17px !important;
-    line-height: 1.8 !important;
+    line-height: 1.7 !important;
   }
 }
 
 /* B. 段落 */
 .entry-content p {
-  margin: 0 0 0.8em !important;
+  margin: 0 0 0.4em !important;
   text-indent: 0;
 }
 .entry-content > p { text-indent: 2em !important; }
