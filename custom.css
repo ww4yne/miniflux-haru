@@ -1,3 +1,4 @@
+
 /* ============================================================
    Miniflux 自定义 CSS（v2.4 兼容版 + 移动端 header 修复）
    · Claude.ai 配色（亮/暗自动跟随 Miniflux 主题）
@@ -455,6 +456,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
 /* A. 文本基础 */
 .entry-content {
   font-size: 20px !important;
+  font-family: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "STSong", serif !important;
   line-height: 1.65 !important;
   color: var(--text) !important;
   text-align: justify !important;
@@ -588,4 +590,5 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
 }
 .entry-content iframe { max-width: 100% !important; }
 .entry-content [style] { font-family: inherit !important; }
+
 
