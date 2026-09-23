@@ -660,6 +660,11 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     display: block !important;
   }
 
+  body.mf-split-active article.entry-item,
+  body.mf-split-active article.entry-item .item-title a {
+    cursor: default !important;
+  }
+
   body.mf-split-active article.entry-item.mf-split-current {
     display: block !important;
     background: var(--accent-dim) !important;
@@ -753,6 +758,28 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     color: var(--text2) !important;
     font-size: 12px !important;
     text-align: center !important;
+  }
+
+  .mf-split-action-status {
+    min-height: 0 !important;
+    padding: 0 14px !important;
+    color: var(--text2) !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+
+  .mf-split-action-status:not(:empty) {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .mf-split-action-status.mf-split-action-error {
+    color: var(--error-color, #b42318) !important;
+  }
+
+  #header-menu .mf-mark-above:disabled {
+    opacity: 0.35 !important;
+    cursor: default !important;
   }
 
   .mf-split-list-status[role="button"] {
