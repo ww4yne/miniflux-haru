@@ -332,7 +332,8 @@ ready(() => {
       for (const article of targets) {
         article.classList.replace("item-status-unread", "item-status-read");
       }
-      showActionStatus(`已将上方 ${targets.length} 条标记为已读`);
+      document.body.classList.add("mf-split-unread-only");
+      showActionStatus(`已将上方 ${targets.length} 条标记为已读；列表仅保留未读`);
     } catch (error) {
       showActionStatus(`标记已读失败：${error.message}`, true);
       console.error("Miniflux could not mark entries above as read:", error);
