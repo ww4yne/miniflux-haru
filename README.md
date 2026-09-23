@@ -143,9 +143,9 @@ Light/dark resolution priority:
 | 2 | `theme probe` | reads `.header` computed background, toggles `mf-dark`/`mf-light` on `<html>` |
 | 3 | `mark-page relocate` | moves the native `[data-action="markPageAsRead"]` button into the bottom `.pagination` row |
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
-| 5 | `auto-mark-above on click` | when you tap an article title, posts `entry/status read` for all unread entries above it in the current DOM order; respects user's sort order (no race with redirect, uses `keepalive: true`) |
+| 5 | `batch mark-read API` | posts an explicit set of entry IDs to `entry/status read`; used by the desktop toolbar action |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list and toggles list visibility without changing mobile navigation |
+| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list, toggles list visibility, and offers an explicit toolbar button to mark unread entries above the selection as read |
 
 ## License
 

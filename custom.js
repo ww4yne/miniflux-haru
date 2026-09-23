@@ -4,7 +4,7 @@
 //   2. 主题探测 mf-dark / mf-light
 //   3. 把原生「标记本页为已读」搬进底部分页行
 //   4. 「回到列表」按钮（仅条目详情页）
-//   5. 点击文章 = 自动标记上方未读为已读
+//   5. 批量标记已读 API
 //   6. 阅读模式 DOM 兜底
 // ============================================================
 
@@ -81,33 +81,19 @@ const injectBack = () => {
 ready(injectBack);
 onRoute(injectBack);
 
-// ---------------- 5. 点击文章 = 标记上方未读 ----------------
-ready(() => {
-  if (!document.querySelector("article.entry-item")) return;
-  document.addEventListener("click", e => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const link = e.target.closest("article.entry-item .item-title a");
-    if (!link) return;
-    const target = link.closest("article[data-id]");
-    const all = [...document.querySelectorAll("article.entry-item")];
-    const idx = all.indexOf(target);
-    if (idx <= 0) return;
-    const ids = all.slice(0, idx)
-      .filter(a => a.classList.contains("item-status-unread"))
-      .map(a => +a.dataset.id);
-    if (!ids.length) return;
-    fetch("/entry/status", {
-      method: "POST",
-      credentials: "same-origin",
-      keepalive: true,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Csrf-Token": document.body.dataset.csrfToken || "",
-      },
-      body: JSON.stringify({ entry_ids: ids, status: "read" }),
-    });
-  }, true);
-});
+// ---------------- 5. 批量标记已读 API ----------------
+const markEntriesRead = async ids => {
+  const response = await fetch("/entry/status", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Csrf-Token": document.body.dataset.csrfToken || "",
+    },
+    body: JSON.stringify({ entry_ids: ids, status: "read" }),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+};
 
 // ---------------- 6. 阅读模式 DOM 兜底 ----------------
 const STYLE_KILL = /(?:^|;)\s*(?:color|background[\w-]*|font[\w-]*|margin[\w-]*|padding[\w-]*|line-height|text-align|text-indent)\s*:[^;]*/gi;
@@ -212,6 +198,15 @@ ready(() => {
   const toggleItem = Object.assign(document.createElement("li"), {
     className: "mf-split-toggle-item",
   });
+  const markAbove = Object.assign(document.createElement("button"), {
+    className: "mf-mark-above",
+    type: "button",
+    disabled: true,
+  });
+  const markAboveItem = Object.assign(document.createElement("li"), {
+    className: "mf-mark-above-item",
+  });
+  markAboveItem.appendChild(markAbove);
   const toggleSpacer = Object.assign(document.createElement("span"), {
     className: "mf-split-toggle-spacer",
   });
@@ -248,6 +243,39 @@ ready(() => {
     return svg;
   };
 
+  const markAboveIcon = () => {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    for (const pathData of ["M4 7h10M4 12h8M4 17h6", "m16 15 2 2 4-5"]) {
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", pathData);
+      svg.appendChild(path);
+    }
+    return svg;
+  };
+  markAbove.appendChild(markAboveIcon());
+
+  const unreadAbove = () => {
+    if (!selectedArticle) return [];
+    const entries = [...list.querySelectorAll("article.entry-item")];
+    const index = entries.indexOf(selectedArticle);
+    if (index <= 0) return [];
+    return entries.slice(0, index)
+      .filter(article => article.classList.contains("item-status-unread"));
+  };
+
+  const renderMarkAbove = () => {
+    const count = unreadAbove().length;
+    const label = count
+      ? `将当前条目上方 ${count} 条未读标记为已读`
+      : "当前条目上方没有未读条目";
+    markAbove.disabled = count === 0;
+    markAbove.setAttribute("aria-label", label);
+    markAbove.setAttribute("title", label);
+  };
+
   const renderToggle = () => {
     const collapsed = document.body.classList.contains("mf-split-collapsed");
     const label = collapsed ? "显示列表" : "收起列表";
@@ -258,7 +286,7 @@ ready(() => {
     } else {
       toggleSpacer.remove();
       toggleItem.appendChild(toggle);
-      headerMenu.prepend(toggleItem);
+      headerMenu.prepend(toggleItem, markAboveItem);
     }
     toggle.replaceChildren(panelIcon(collapsed));
     toggle.setAttribute("aria-label", label);
@@ -271,6 +299,42 @@ ready(() => {
     renderToggle();
   });
   renderToggle();
+  renderMarkAbove();
+
+  const actionStatus = Object.assign(document.createElement("div"), {
+    className: "mf-split-action-status",
+  });
+  actionStatus.setAttribute("aria-live", "polite");
+  listMain.prepend(actionStatus);
+  let actionStatusTimer;
+  const showActionStatus = (text, isError = false) => {
+    clearTimeout(actionStatusTimer);
+    actionStatus.textContent = text;
+    actionStatus.classList.toggle("mf-split-action-error", isError);
+    if (!isError) {
+      actionStatusTimer = setTimeout(() => {
+        actionStatus.textContent = "";
+      }, 3000);
+    }
+  };
+
+  markAbove.addEventListener("click", async () => {
+    const targets = unreadAbove();
+    if (!targets.length) return;
+    markAbove.disabled = true;
+    try {
+      await markEntriesRead(targets.map(article => +article.dataset.id));
+      for (const article of targets) {
+        article.classList.replace("item-status-unread", "item-status-read");
+      }
+      showActionStatus(`已将上方 ${targets.length} 条标记为已读`);
+    } catch (error) {
+      showActionStatus(`标记已读失败：${error.message}`, true);
+      console.error("Miniflux could not mark entries above as read:", error);
+    } finally {
+      renderMarkAbove();
+    }
+  });
 
   const showMessage = (className, text, detail = "") => {
     titleHost.querySelector("h1")?.remove();
@@ -399,10 +463,9 @@ ready(() => {
               ? current
               : entries.slice(index + 1).find(visible) ||
                 entries.slice(0, index).reverse().find(visible);
-            const title = target?.querySelector(".item-title a");
             requestAnimationFrame(() => {
-              title?.focus({ preventScroll: true });
-              title?.scrollIntoView({ block: "nearest" });
+              target?.focus({ preventScroll: true });
+              target?.scrollIntoView({ block: "nearest" });
             });
           }
         });
@@ -414,10 +477,15 @@ ready(() => {
       if (article) {
         document.querySelectorAll("article.entry-item.mf-split-current")
           .forEach(node => {
-            if (node !== article) node.classList.remove("mf-split-current");
+            if (node !== article) {
+              node.classList.remove("mf-split-current");
+              node.setAttribute("aria-selected", "false");
+            }
           });
         article.classList.add("mf-split-current");
+        article.setAttribute("aria-selected", "true");
         selectedArticle = article;
+        renderMarkAbove();
       }
       if (article && entry.querySelector("[data-toggle-status]")?.dataset.value === "read") {
         article.classList.replace("item-status-unread", "item-status-read");
@@ -437,6 +505,7 @@ ready(() => {
 
   const configureTitleLinks = () => {
     for (const title of list.querySelectorAll("article.entry-item .item-title a")) {
+      const article = title.closest("article.entry-item");
       if (desktop.matches) {
         if (!title.dataset.mfSplitHref) {
           title.dataset.mfSplitHref = title.href;
@@ -444,14 +513,23 @@ ready(() => {
         }
         title.removeAttribute("href");
         title.removeAttribute("target");
-        title.setAttribute("role", "button");
-        title.tabIndex = 0;
+        title.removeAttribute("role");
+        title.tabIndex = -1;
+        article.setAttribute("role", "option");
+        article.setAttribute(
+          "aria-selected",
+          String(article.classList.contains("mf-split-current")),
+        );
+        article.tabIndex = 0;
       } else if (title.dataset.mfSplitHref) {
         title.href = title.dataset.mfSplitHref;
         if (title.dataset.mfSplitTarget) title.target = title.dataset.mfSplitTarget;
         else title.removeAttribute("target");
         title.removeAttribute("role");
         title.removeAttribute("tabindex");
+        article.removeAttribute("role");
+        article.removeAttribute("aria-selected");
+        article.removeAttribute("tabindex");
       }
     }
   };
@@ -470,23 +548,33 @@ ready(() => {
   desktop.addEventListener("change", configureTitleLinks);
 
   list.addEventListener("click", event => {
-    const title = event.target.closest("article.entry-item .item-title a");
-    if (!title || !desktop.matches) return;
+    const article = event.target.closest("article.entry-item");
+    if (!article || !desktop.matches) return;
+    const title = article.querySelector(".item-title a");
     event.preventDefault();
     event.stopImmediatePropagation();
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
       return;
     }
-    load(title.dataset.mfSplitHref, title.closest("article.entry-item"));
+    load(title.dataset.mfSplitHref, article);
   }, true);
   list.addEventListener("auxclick", event => {
-    const title = event.target.closest("article.entry-item .item-title a");
-    if (!title || !desktop.matches || event.button !== 1) return;
+    const article = event.target.closest("article.entry-item");
+    if (!article || !desktop.matches || event.button !== 1) return;
+    const title = article.querySelector(".item-title a");
     event.preventDefault();
     event.stopImmediatePropagation();
     window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
   }, true);
+  list.addEventListener("keydown", event => {
+    if (!desktop.matches || (event.key !== "Enter" && event.key !== " ")) return;
+    const article = event.target.closest("article.entry-item");
+    if (!article) return;
+    event.preventDefault();
+    const title = article.querySelector(".item-title a");
+    load(title.dataset.mfSplitHref, article);
+  });
 
   const nextPageUrl = root => {
     const links = root.querySelectorAll(
@@ -583,8 +671,8 @@ ready(() => {
     if (!target) return;
     const title = target.querySelector(".item-title a");
     await load(title.dataset.mfSplitHref, target);
-    title.scrollIntoView({ block: "nearest" });
-    title.focus({ preventScroll: true });
+    target.scrollIntoView({ block: "nearest" });
+    target.focus({ preventScroll: true });
   }, true);
 
   reader.addEventListener("click", event => {
