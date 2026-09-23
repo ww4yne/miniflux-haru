@@ -786,11 +786,6 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     cursor: default !important;
   }
 
-  #header-menu .mf-mark-above svg {
-    width: 24px !important;
-    height: 24px !important;
-  }
-
   .mf-split-list-status[role="button"] {
     cursor: pointer !important;
     color: var(--accent) !important;
