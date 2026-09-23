@@ -31,8 +31,9 @@ Place your own here. Suggested shots:
 - A panel icon in the existing entry-action row collapses the list into a
   centered 768px reading view and restores the 1128px split layout
 - Both reader pagination rows retain a centered `back to list` link that
-  expands the sidebar, clears the reader, and focuses the selected entry or
-  its nearest visible neighbor when read entries are hidden
+  expands the sidebar, clears the reader, and focuses the selected entry
+- The active entry remains visible after `mark_read_on_view`; selecting another
+  entry releases the previous one so hidden-read filtering can remove it
 
 ### Reading mode (article body)
 

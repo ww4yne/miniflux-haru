@@ -637,6 +637,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   body.mf-split-active article.entry-item.mf-split-current {
+    display: block !important;
     background: var(--accent-dim) !important;
     box-shadow: inset -3px 0 var(--accent) !important;
   }
