@@ -180,19 +180,30 @@ onRoute(clean);
 ready(() => {
   const desktop = matchMedia("(min-width: 1024px)");
   const list = document.querySelector(".items article.entry-item")?.closest(".items");
-  if (!list) return;
+  const listMain = list?.closest("main");
+  const header = document.querySelector(".header");
+  const headerMenu = document.querySelector("#header-menu");
+  if (!list || !listMain || !header || !headerMenu) return;
 
   document.body.classList.add("mf-split-active");
+  const syncHeaderHeight = () => {
+    document.body.style.setProperty("--mf-split-header-height", `${header.offsetHeight}px`);
+  };
+  syncHeaderHeight();
+  addEventListener("resize", syncHeaderHeight);
 
   const reader = Object.assign(document.createElement("section"), {
     id: "mf-split-reader",
   });
   reader.setAttribute("aria-label", "文章正文");
   const toggle = Object.assign(document.createElement("button"), {
-    className: "page-button mf-split-toggle",
+    className: "mf-split-toggle",
     type: "button",
   });
   toggle.setAttribute("aria-expanded", "true");
+  const toggleItem = Object.assign(document.createElement("li"), {
+    className: "mf-split-toggle-item",
+  });
   const inner = Object.assign(document.createElement("div"), {
     className: "mf-split-reader-inner",
   });
@@ -229,6 +240,12 @@ ready(() => {
   const renderToggle = () => {
     const collapsed = document.body.classList.contains("mf-split-collapsed");
     const label = collapsed ? "显示列表" : "收起列表";
+    if (collapsed) {
+      reader.prepend(toggle);
+    } else {
+      toggleItem.appendChild(toggle);
+      headerMenu.prepend(toggleItem);
+    }
     toggle.replaceChildren(panelIcon(collapsed));
     toggle.setAttribute("aria-label", label);
     toggle.setAttribute("title", label);
@@ -339,15 +356,6 @@ ready(() => {
         document.importNode(entry, true),
         ...[...content.children].map(node => document.importNode(node, true)),
       );
-      const actions = inner.querySelector(".entry-actions ul");
-      if (actions) {
-        const item = Object.assign(document.createElement("li"), {
-          className: "mf-split-toggle-item",
-        });
-        item.appendChild(toggle);
-        actions.prepend(item);
-        renderToggle();
-      }
       cleanSplitContent(inner.querySelector(".entry-content"));
       inner.querySelectorAll(".pagination").forEach((pager, index) => {
         if (pager.querySelector(".mf-split-back-wrap")) return;
@@ -384,7 +392,7 @@ ready(() => {
         wrap.appendChild(back);
         pager.insertBefore(wrap, next);
       });
-      reader.scrollTop = 0;
+      scrollTo({ top: 0 });
 
       if (article) {
         document.querySelectorAll("article.entry-item.mf-split-current")
@@ -410,9 +418,8 @@ ready(() => {
     }
   };
 
-  const titles = [...list.querySelectorAll("article.entry-item .item-title a")];
   const configureTitleLinks = () => {
-    for (const title of titles) {
+    for (const title of list.querySelectorAll("article.entry-item .item-title a")) {
       if (desktop.matches) {
         if (!title.dataset.mfSplitHref) {
           title.dataset.mfSplitHref = title.href;
@@ -431,27 +438,109 @@ ready(() => {
       }
     }
   };
-  configureTitleLinks();
+  const decorateListEntries = root => {
+    for (const article of root.querySelectorAll("article.entry-item")) {
+      if (!article.dataset.iconChecked) {
+        article.dataset.iconChecked = "1";
+        const title = article.querySelector(".item-title a");
+        const source = article.querySelector(".item-meta-info-title a")?.textContent.trim();
+        if (title && source) title.dataset.iconLetter = source[0];
+      }
+    }
+    configureTitleLinks();
+  };
+  decorateListEntries(list);
   desktop.addEventListener("change", configureTitleLinks);
 
-  for (const title of titles) {
-    title.addEventListener("click", event => {
-      if (!desktop.matches) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
-        return;
-      }
-      load(title.dataset.mfSplitHref, title.closest("article.entry-item"));
-    }, true);
-    title.addEventListener("auxclick", event => {
-      if (!desktop.matches || event.button !== 1) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
+  list.addEventListener("click", event => {
+    const title = event.target.closest("article.entry-item .item-title a");
+    if (!title || !desktop.matches) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
-    }, true);
-  }
+      return;
+    }
+    load(title.dataset.mfSplitHref, title.closest("article.entry-item"));
+  }, true);
+  list.addEventListener("auxclick", event => {
+    const title = event.target.closest("article.entry-item .item-title a");
+    if (!title || !desktop.matches || event.button !== 1) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
+  }, true);
+
+  const nextPageUrl = root => {
+    const links = root.querySelectorAll(
+      ".pagination a.pagination-next[href], .pagination a.pagination-forward[href], " +
+      ".pagination .pagination-next a[href], .pagination .pagination-forward a[href]",
+    );
+    const href = links[links.length - 1]?.getAttribute("href");
+    return href ? new URL(href, location.href).href : "";
+  };
+  let nextPage = nextPageUrl(document);
+  let loadingNextPage = false;
+  const listStatus = Object.assign(document.createElement("div"), {
+    className: "mf-split-list-status",
+    textContent: nextPage ? "继续滚动加载" : "已加载全部",
+  });
+  listMain.appendChild(listStatus);
+
+  const loadNextPage = async () => {
+    if (!nextPage || loadingNextPage || !desktop.matches) return;
+    loadingNextPage = true;
+    const url = nextPage;
+    listStatus.removeAttribute("role");
+    listStatus.removeAttribute("tabindex");
+    listStatus.textContent = "正在加载更多…";
+    try {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        headers: { "X-Requested-With": "Miniflux-Split-List" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const page = new DOMParser().parseFromString(
+        htmlPolicy.createHTML(await response.text()),
+        "text/html",
+      );
+      const sourceList = page.querySelector(".items");
+      if (!sourceList) throw new Error("Entry list markup not found");
+      const knownIds = new Set(
+        [...list.querySelectorAll("article.entry-item[data-id]")].map(node => node.dataset.id),
+      );
+      const entries = [...sourceList.querySelectorAll("article.entry-item")]
+        .filter(node => !knownIds.has(node.dataset.id))
+        .map(node => document.importNode(node, true));
+      if (!entries.length) throw new Error("Next page contained no new entries");
+      list.append(...entries);
+      decorateListEntries(list);
+      nextPage = nextPageUrl(page);
+      listStatus.textContent = nextPage ? "继续滚动加载" : "已加载全部";
+      if (!nextPage) observer.disconnect();
+    } catch (error) {
+      listStatus.textContent = `加载更多失败：${error.message}（点击重试）`;
+      listStatus.setAttribute("role", "button");
+      listStatus.tabIndex = 0;
+      console.error("Miniflux split list could not load the next page:", error);
+    } finally {
+      loadingNextPage = false;
+    }
+  };
+  listStatus.addEventListener("click", () => {
+    if (listStatus.getAttribute("role") === "button") loadNextPage();
+  });
+  listStatus.addEventListener("keydown", event => {
+    if (listStatus.getAttribute("role") === "button" &&
+        (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      loadNextPage();
+    }
+  });
+  const observer = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) loadNextPage();
+  }, { root: listMain, rootMargin: "200px 0px" });
+  if (nextPage) observer.observe(listStatus);
 
   reader.addEventListener("click", event => {
     if (!desktop.matches || event.metaKey || event.ctrlKey ||
