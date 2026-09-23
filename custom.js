@@ -191,11 +191,18 @@ ready(() => {
   const inner = Object.assign(document.createElement("div"), {
     className: "mf-split-reader-inner",
   });
-  inner.innerHTML = '<div class="mf-split-placeholder">选择一篇文章开始阅读</div>';
+  const placeholder = Object.assign(document.createElement("div"), {
+    className: "mf-split-placeholder",
+    textContent: "选择一篇文章开始阅读",
+  });
+  inner.appendChild(placeholder);
   reader.appendChild(inner);
   document.body.appendChild(reader);
 
   let request;
+  const htmlPolicy = trustedTypes.createPolicy("miniflux-split-pane-html", {
+    createHTML: html => html,
+  });
 
   const cleanSplitContent = root => {
     if (!root || root.dataset.cleaned) return;
@@ -261,7 +268,8 @@ ready(() => {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const page = new DOMParser().parseFromString(await response.text(), "text/html");
+      const html = htmlPolicy.createHTML(await response.text());
+      const page = new DOMParser().parseFromString(html, "text/html");
       const entry = page.querySelector(".entry");
       const content = page.querySelector("main");
       if (!entry || !content?.querySelector(".entry-content")) {
@@ -283,7 +291,17 @@ ready(() => {
       }
     } catch (error) {
       if (error.name !== "AbortError") {
-        inner.innerHTML = `<div class="mf-split-error">正文加载失败<br><small>${error.message}</small></div>`;
+        const message = Object.assign(document.createElement("div"), {
+          className: "mf-split-error",
+        });
+        message.append(
+          "正文加载失败",
+          document.createElement("br"),
+          Object.assign(document.createElement("small"), {
+            textContent: error.message,
+          }),
+        );
+        inner.replaceChildren(message);
         console.error("Miniflux split pane could not load entry:", error);
       }
     } finally {
@@ -291,18 +309,21 @@ ready(() => {
     }
   };
 
-  document.addEventListener("click", event => {
-    if (!desktop.matches || event.button !== 0 ||
-        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const isPlainDesktopClick = event =>
+    desktop.matches && event.button === 0 &&
+    !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 
-    const title = event.target.closest("article.entry-item .item-title a");
-    if (title) {
+  for (const title of list.querySelectorAll("article.entry-item .item-title a")) {
+    title.addEventListener("click", event => {
+      if (!isPlainDesktopClick(event)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       load(title.href, title.closest("article.entry-item"));
-      return;
-    }
+    }, true);
+  }
 
+  reader.addEventListener("click", event => {
+    if (!isPlainDesktopClick(event)) return;
     const pager = event.target.closest("#mf-split-reader .pagination a[data-page]");
     if (!pager) return;
     event.preventDefault();
