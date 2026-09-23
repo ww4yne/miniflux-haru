@@ -366,7 +366,14 @@ ready(() => {
           showMessage("mf-split-placeholder", "选择一篇文章开始阅读");
           const current = document.querySelector("article.entry-item.mf-split-current");
           current?.classList.remove("mf-split-current");
-          current?.focus();
+          if (current) {
+            current.tabIndex = -1;
+            current.focus({ preventScroll: true });
+            current.scrollIntoView({ block: "nearest" });
+            current.addEventListener("blur", () => current.removeAttribute("tabindex"), {
+              once: true,
+            });
+          }
         });
         wrap.appendChild(back);
         pager.insertBefore(wrap, next);
