@@ -188,6 +188,12 @@ ready(() => {
     id: "mf-split-reader",
   });
   reader.setAttribute("aria-label", "文章正文");
+  const toggle = Object.assign(document.createElement("button"), {
+    className: "mf-split-toggle",
+    type: "button",
+    textContent: "隐藏列表",
+  });
+  toggle.setAttribute("aria-expanded", "true");
   const inner = Object.assign(document.createElement("div"), {
     className: "mf-split-reader-inner",
   });
@@ -196,12 +202,19 @@ ready(() => {
     textContent: "选择一篇文章开始阅读",
   });
   inner.appendChild(placeholder);
+  reader.appendChild(toggle);
   reader.appendChild(inner);
   document.body.appendChild(reader);
 
   let request;
-  const htmlPolicy = trustedTypes.createPolicy("miniflux-split-pane-html", {
+  const htmlPolicy = trustedTypes.createPolicy("html", {
     createHTML: html => html,
+  });
+
+  toggle.addEventListener("click", () => {
+    const collapsed = document.body.classList.toggle("mf-split-collapsed");
+    toggle.textContent = collapsed ? "显示列表" : "隐藏列表";
+    toggle.setAttribute("aria-expanded", String(!collapsed));
   });
 
   const showMessage = (className, text, detail = "") => {

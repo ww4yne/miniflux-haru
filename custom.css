@@ -1,6 +1,5 @@
 
 
-
 /* ============================================================
    Miniflux 自定义 CSS（v2.4 兼容版 + 移动端 header 修复）
    · Claude.ai 配色（亮/暗自动跟随 Miniflux 主题）
@@ -614,6 +613,15 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     overflow: hidden !important;
   }
 
+  body.mf-split-active.mf-split-collapsed {
+    width: min(768px, 100vw) !important;
+    grid-template-columns: minmax(0, 768px) !important;
+  }
+
+  body.mf-split-active.mf-split-collapsed > :is(.header, main) {
+    display: none !important;
+  }
+
   body.mf-split-active > .header {
     grid-column: 1 !important;
     grid-row: 1 !important;
@@ -642,6 +650,27 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     scrollbar-gutter: stable !important;
     border-left: 1px solid var(--bg4) !important;
     background: var(--bg) !important;
+  }
+
+  body.mf-split-collapsed #mf-split-reader {
+    grid-column: 1 !important;
+    border-left: 0 !important;
+  }
+
+  #mf-split-reader .mf-split-toggle {
+    position: sticky !important;
+    z-index: 2 !important;
+    top: 12px !important;
+    left: 12px !important;
+    margin: 12px 0 -42px 12px !important;
+    padding: 4px 9px !important;
+    border: 1px solid var(--accent-bd) !important;
+    border-radius: 4px !important;
+    color: var(--accent) !important;
+    background: var(--bg2) !important;
+    font: inherit !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
   }
 
   #mf-split-reader .mf-split-reader-inner {
