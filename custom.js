@@ -324,21 +324,50 @@ ready(() => {
     }
   };
 
-  const isPlainDesktopClick = event =>
-    desktop.matches && event.button === 0 &&
-    !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+  const titles = [...list.querySelectorAll("article.entry-item .item-title a")];
+  const configureTitleLinks = () => {
+    for (const title of titles) {
+      if (desktop.matches) {
+        if (!title.dataset.mfSplitHref) {
+          title.dataset.mfSplitHref = title.href;
+          title.dataset.mfSplitTarget = title.getAttribute("target") || "";
+        }
+        title.removeAttribute("href");
+        title.removeAttribute("target");
+        title.setAttribute("role", "button");
+      } else if (title.dataset.mfSplitHref) {
+        title.href = title.dataset.mfSplitHref;
+        if (title.dataset.mfSplitTarget) title.target = title.dataset.mfSplitTarget;
+        else title.removeAttribute("target");
+        title.removeAttribute("role");
+      }
+    }
+  };
+  configureTitleLinks();
+  desktop.addEventListener("change", configureTitleLinks);
 
-  for (const title of list.querySelectorAll("article.entry-item .item-title a")) {
+  for (const title of titles) {
     title.addEventListener("click", event => {
-      if (!isPlainDesktopClick(event)) return;
+      if (!desktop.matches) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      load(title.href, title.closest("article.entry-item"));
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
+        return;
+      }
+      load(title.dataset.mfSplitHref, title.closest("article.entry-item"));
+    }, true);
+    title.addEventListener("auxclick", event => {
+      if (!desktop.matches || event.button !== 1) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
     }, true);
   }
 
   reader.addEventListener("click", event => {
-    if (!isPlainDesktopClick(event)) return;
+    if (!desktop.matches || event.metaKey || event.ctrlKey ||
+        event.shiftKey || event.altKey) return;
     const pager = event.target.closest("#mf-split-reader .pagination a[data-page]");
     if (!pager) return;
     event.preventDefault();
