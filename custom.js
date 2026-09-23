@@ -368,8 +368,10 @@ ready(() => {
           current?.classList.remove("mf-split-current");
           if (current) {
             const title = current.querySelector(".item-title a");
-            title?.focus({ preventScroll: true });
-            title?.scrollIntoView({ block: "nearest" });
+            requestAnimationFrame(() => {
+              title?.focus({ preventScroll: true });
+              title?.scrollIntoView({ block: "nearest" });
+            });
           }
         });
         wrap.appendChild(back);
