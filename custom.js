@@ -175,3 +175,219 @@ const clean = () => {
 };
 ready(clean);
 onRoute(clean);
+
+// ---------------- 7. 桌面分栏阅读 ----------------
+ready(() => {
+  const desktop = matchMedia("(min-width: 1024px)");
+  const list = document.querySelector(".items article.entry-item")?.closest(".items");
+  if (!list) return;
+
+  document.body.classList.add("mf-split-active");
+
+  const reader = Object.assign(document.createElement("section"), {
+    id: "mf-split-reader",
+  });
+  reader.setAttribute("aria-label", "文章正文");
+  const toggle = Object.assign(document.createElement("button"), {
+    className: "mf-split-toggle",
+    type: "button",
+    textContent: "隐藏列表",
+  });
+  toggle.setAttribute("aria-expanded", "true");
+  const inner = Object.assign(document.createElement("div"), {
+    className: "mf-split-reader-inner",
+  });
+  const placeholder = Object.assign(document.createElement("div"), {
+    className: "mf-split-placeholder",
+    textContent: "选择一篇文章开始阅读",
+  });
+  inner.appendChild(placeholder);
+  reader.appendChild(toggle);
+  reader.appendChild(inner);
+  document.body.appendChild(reader);
+
+  let request;
+  const htmlPolicy = trustedTypes.createPolicy("html", {
+    createHTML: html => html,
+  });
+
+  toggle.addEventListener("click", () => {
+    const collapsed = document.body.classList.toggle("mf-split-collapsed");
+    toggle.textContent = collapsed ? "显示列表" : "隐藏列表";
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+  });
+
+  const showMessage = (className, text, detail = "") => {
+    const message = Object.assign(document.createElement("div"), {
+      className,
+      textContent: text,
+    });
+    if (detail) {
+      message.append(
+        document.createElement("br"),
+        Object.assign(document.createElement("small"), {
+          textContent: detail,
+        }),
+      );
+    }
+    inner.replaceChildren(message);
+  };
+
+  const cleanSplitContent = root => {
+    if (!root || root.dataset.cleaned) return;
+    root.dataset.cleaned = "1";
+
+    for (const img of root.querySelectorAll(EMOJI_IMG_SEL)) img.remove();
+
+    for (const el of root.querySelectorAll("[style]")) {
+      const s = el.getAttribute("style").replace(STYLE_KILL, "").replace(/^;+|;+$/g, "").trim();
+      s ? el.setAttribute("style", s) : el.removeAttribute("style");
+    }
+
+    for (const p of root.querySelectorAll("p")) {
+      const t = p.textContent.trim();
+      const hasMedia = p.querySelector("img,video,iframe");
+      if (!t && !hasMedia) { p.remove(); continue; }
+      if (!t || hasMedia || p.querySelector("a")) continue;
+      if (!t.replace(EMOJI, "").trim()) {
+        const nxt = p.nextElementSibling;
+        if (nxt && MERGE_TAGS.test(nxt.tagName)) {
+          nxt.insertBefore(document.createTextNode(t + " "), nxt.firstChild);
+          p.remove();
+        }
+      }
+    }
+
+    for (const img of root.querySelectorAll("img")) {
+      const post = () => {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        if (w >= 800 && w / h >= 3) {
+          img.style.setProperty("max-width", "60%", "important");
+          return;
+        }
+        if (w <= 128 && w === h) {
+          img.style.cssText += ";" + ICON_CSS;
+          const par = img.closest("p");
+          if (par && par.children.length === 1 && !par.textContent.trim()) mergeIntoNext(img, par);
+        }
+      };
+      if (img.complete && img.naturalWidth) post();
+      else {
+        img.addEventListener("load", post, { once: true });
+        img.addEventListener("error", () => {
+          const par = img.closest("p");
+          if (par && par.children.length === 1 && !par.textContent.trim()) par.remove();
+        }, { once: true });
+      }
+    }
+  };
+
+  const load = async (url, article) => {
+    request?.abort();
+    const controller = new AbortController();
+    request = controller;
+    reader.setAttribute("aria-busy", "true");
+    showMessage("mf-split-placeholder", "正在加载正文…");
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 12000);
+
+    try {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        signal: controller.signal,
+        headers: { "X-Requested-With": "Miniflux-Split-Pane" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const html = htmlPolicy.createHTML(await response.text());
+      const page = new DOMParser().parseFromString(html, "text/html");
+      const entry = page.querySelector(".entry");
+      const content = page.querySelector("main");
+      if (!entry || !content?.querySelector(".entry-content")) {
+        throw new Error("Entry markup not found");
+      }
+
+      inner.replaceChildren(
+        document.importNode(entry, true),
+        ...[...content.children].map(node => document.importNode(node, true)),
+      );
+      cleanSplitContent(inner.querySelector(".entry-content"));
+      reader.scrollTop = 0;
+
+      document.querySelectorAll("article.entry-item.mf-split-current")
+        .forEach(node => node.classList.remove("mf-split-current"));
+      article?.classList.add("mf-split-current");
+      if (article && entry.querySelector("[data-toggle-status]")?.dataset.value === "read") {
+        article.classList.replace("item-status-unread", "item-status-read");
+      }
+    } catch (error) {
+      if (timedOut) {
+        showMessage("mf-split-error", "正文加载超时", "请求超过 12 秒");
+      } else if (error.name !== "AbortError") {
+        showMessage("mf-split-error", "正文加载失败", error.message);
+        console.error("Miniflux split pane could not load entry:", error);
+      }
+    } finally {
+      clearTimeout(timeout);
+      if (request === controller) reader.removeAttribute("aria-busy");
+    }
+  };
+
+  const titles = [...list.querySelectorAll("article.entry-item .item-title a")];
+  const configureTitleLinks = () => {
+    for (const title of titles) {
+      if (desktop.matches) {
+        if (!title.dataset.mfSplitHref) {
+          title.dataset.mfSplitHref = title.href;
+          title.dataset.mfSplitTarget = title.getAttribute("target") || "";
+        }
+        title.removeAttribute("href");
+        title.removeAttribute("target");
+        title.setAttribute("role", "button");
+      } else if (title.dataset.mfSplitHref) {
+        title.href = title.dataset.mfSplitHref;
+        if (title.dataset.mfSplitTarget) title.target = title.dataset.mfSplitTarget;
+        else title.removeAttribute("target");
+        title.removeAttribute("role");
+      }
+    }
+  };
+  configureTitleLinks();
+  desktop.addEventListener("change", configureTitleLinks);
+
+  for (const title of titles) {
+    title.addEventListener("click", event => {
+      if (!desktop.matches) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
+        return;
+      }
+      load(title.dataset.mfSplitHref, title.closest("article.entry-item"));
+    }, true);
+    title.addEventListener("auxclick", event => {
+      if (!desktop.matches || event.button !== 1) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
+    }, true);
+  }
+
+  reader.addEventListener("click", event => {
+    if (!desktop.matches || event.metaKey || event.ctrlKey ||
+        event.shiftKey || event.altKey) return;
+    const pager = event.target.closest("#mf-split-reader .pagination a[data-page]");
+    if (!pager) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const id = pager.pathname.match(/\/entry\/(\d+)/)?.[1];
+    const article = id && document.querySelector(`article.entry-item[data-id="${id}"]`);
+    load(pager.href, article);
+  }, true);
+
+});
