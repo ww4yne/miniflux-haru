@@ -369,7 +369,14 @@ ready(() => {
           showMessage("mf-split-placeholder", "选择一篇文章开始阅读");
           current?.classList.remove("mf-split-current");
           if (current) {
-            const title = current.querySelector(".item-title a");
+            const entries = [...list.querySelectorAll("article.entry-item")];
+            const index = entries.indexOf(current);
+            const visible = entry => entry.getClientRects().length > 0;
+            const target = visible(current)
+              ? current
+              : entries.slice(index + 1).find(visible) ||
+                entries.slice(0, index).reverse().find(visible);
+            const title = target?.querySelector(".item-title a");
             requestAnimationFrame(() => {
               title?.focus({ preventScroll: true });
               title?.scrollIntoView({ block: "nearest" });
