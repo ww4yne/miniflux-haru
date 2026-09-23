@@ -28,6 +28,8 @@ Place your own here. Suggested shots:
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
   existing 768px reading layout, centered as one unit with independent scrolling
+- Reader toggle collapses the list into a centered 768px reading view and
+  restores the 1128px split layout without affecting mobile navigation
 
 ### Reading mode (article body)
 
@@ -133,7 +135,7 @@ Light/dark resolution priority:
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
 | 5 | `auto-mark-above on click` | when you tap an article title, posts `entry/status read` for all unread entries above it in the current DOM order; respects user's sort order (no race with redirect, uses `keepalive: true`) |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list without changing mobile navigation |
+| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list and toggles list visibility without changing mobile navigation |
 
 ## License
 
