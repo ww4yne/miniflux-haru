@@ -189,9 +189,8 @@ ready(() => {
   });
   reader.setAttribute("aria-label", "文章正文");
   const toggle = Object.assign(document.createElement("button"), {
-    className: "mf-split-toggle",
+    className: "page-button mf-split-toggle",
     type: "button",
-    textContent: "隐藏列表",
   });
   toggle.setAttribute("aria-expanded", "true");
   const inner = Object.assign(document.createElement("div"), {
@@ -202,20 +201,45 @@ ready(() => {
     textContent: "选择一篇文章开始阅读",
   });
   inner.appendChild(placeholder);
-  reader.appendChild(toggle);
   reader.appendChild(inner);
   document.body.appendChild(reader);
 
   let request;
+  let selectedArticle;
   const htmlPolicy = trustedTypes.createPolicy("html", {
     createHTML: html => html,
   });
 
-  toggle.addEventListener("click", () => {
-    const collapsed = document.body.classList.toggle("mf-split-collapsed");
-    toggle.textContent = collapsed ? "显示列表" : "隐藏列表";
+  const panelIcon = collapsed => {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    const shape = (name, attrs) => {
+      const node = document.createElementNS(ns, name);
+      for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+      svg.appendChild(node);
+    };
+    shape("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" });
+    shape("path", { d: "M9 4v16" });
+    shape("path", { d: collapsed ? "m13 9 3 3-3 3" : "m16 9-3 3 3 3" });
+    return svg;
+  };
+
+  const renderToggle = () => {
+    const collapsed = document.body.classList.contains("mf-split-collapsed");
+    const label = collapsed ? "显示列表" : "收起列表";
+    toggle.replaceChildren(panelIcon(collapsed));
+    toggle.setAttribute("aria-label", label);
+    toggle.setAttribute("title", label);
     toggle.setAttribute("aria-expanded", String(!collapsed));
+  };
+
+  toggle.addEventListener("click", () => {
+    document.body.classList.toggle("mf-split-collapsed");
+    renderToggle();
   });
+  renderToggle();
 
   const showMessage = (className, text, detail = "") => {
     const message = Object.assign(document.createElement("div"), {
@@ -315,12 +339,59 @@ ready(() => {
         document.importNode(entry, true),
         ...[...content.children].map(node => document.importNode(node, true)),
       );
+      const actions = inner.querySelector(".entry-actions ul");
+      if (actions) {
+        const item = Object.assign(document.createElement("li"), {
+          className: "mf-split-toggle-item",
+        });
+        item.appendChild(toggle);
+        actions.prepend(item);
+        renderToggle();
+      }
       cleanSplitContent(inner.querySelector(".entry-content"));
+      inner.querySelectorAll(".pagination").forEach((pager, index) => {
+        if (pager.querySelector(".mf-split-back-wrap")) return;
+        const next = pager.querySelector(":scope > .pagination-next");
+        const wrap = Object.assign(document.createElement("div"), {
+          className: "mf-split-back-wrap",
+        });
+        const back = Object.assign(document.createElement("a"), {
+          id: `mf-back-btn-split-${index}`,
+          href: location.href,
+          textContent: "回到列表",
+        });
+        back.addEventListener("click", event => {
+          event.preventDefault();
+          const current = selectedArticle;
+          selectedArticle = undefined;
+          document.body.classList.remove("mf-split-collapsed");
+          renderToggle();
+          showMessage("mf-split-placeholder", "选择一篇文章开始阅读");
+          current?.classList.remove("mf-split-current");
+          if (current) {
+            const entries = [...list.querySelectorAll("article.entry-item")];
+            const index = entries.indexOf(current);
+            const visible = entry => entry.getClientRects().length > 0;
+            const target = visible(current)
+              ? current
+              : entries.slice(index + 1).find(visible) ||
+                entries.slice(0, index).reverse().find(visible);
+            const title = target?.querySelector(".item-title a");
+            requestAnimationFrame(() => {
+              title?.focus({ preventScroll: true });
+              title?.scrollIntoView({ block: "nearest" });
+            });
+          }
+        });
+        wrap.appendChild(back);
+        pager.insertBefore(wrap, next);
+      });
       reader.scrollTop = 0;
 
       document.querySelectorAll("article.entry-item.mf-split-current")
         .forEach(node => node.classList.remove("mf-split-current"));
       article?.classList.add("mf-split-current");
+      if (article) selectedArticle = article;
       if (article && entry.querySelector("[data-toggle-status]")?.dataset.value === "read") {
         article.classList.replace("item-status-unread", "item-status-read");
       }
@@ -348,11 +419,13 @@ ready(() => {
         title.removeAttribute("href");
         title.removeAttribute("target");
         title.setAttribute("role", "button");
+        title.tabIndex = 0;
       } else if (title.dataset.mfSplitHref) {
         title.href = title.dataset.mfSplitHref;
         if (title.dataset.mfSplitTarget) title.target = title.dataset.mfSplitTarget;
         else title.removeAttribute("target");
         title.removeAttribute("role");
+        title.removeAttribute("tabindex");
       }
     }
   };
