@@ -598,6 +598,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
    · 360px 列表 + 768px 阅读区，作为整体紧贴居中
    · 移动端和未激活页面不受影响
    ============================================================ */
+#mf-split-title,
 #mf-split-reader {
   display: none !important;
 }
@@ -663,12 +664,49 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   #mf-split-reader {
     display: block !important;
     grid-column: 2 !important;
-    grid-row: 1 / 3 !important;
+    grid-row: 2 !important;
     min-width: 0 !important;
-    min-height: 100vh !important;
+    min-height: calc(100vh - var(--mf-split-header-height, 52px)) !important;
     overflow: visible !important;
     border-left: 1px solid var(--bg4) !important;
     background: var(--bg) !important;
+  }
+
+  #mf-split-title {
+    display: grid !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-self: stretch !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-left: 1px solid var(--bg4) !important;
+    background: var(--bg) !important;
+  }
+
+  #mf-split-title h1 {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  #mf-split-title .mf-split-toggle,
+  #mf-split-title .mf-split-toggle-spacer {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 4px 5px !important;
+    border: 0 !important;
+    color: var(--c-muted) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  #mf-split-title .mf-split-toggle-spacer {
+    grid-column: 3 !important;
+    visibility: hidden !important;
   }
 
   body.mf-split-collapsed #mf-split-reader {
@@ -676,8 +714,14 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     border-left: 0 !important;
   }
 
+  body.mf-split-collapsed #mf-split-title {
+    grid-column: 1 !important;
+    border-left: 0 !important;
+  }
+
   #header-menu .mf-split-toggle svg,
-  body.mf-split-collapsed #mf-split-reader > .mf-split-toggle svg {
+  #mf-split-title .mf-split-toggle svg,
+  #mf-split-title .mf-split-toggle-spacer svg {
     width: 16px !important;
     height: 16px !important;
     fill: none !important;
@@ -687,20 +731,8 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     stroke-linejoin: round !important;
   }
 
-  body.mf-split-collapsed #mf-split-reader > .mf-split-toggle {
-    position: sticky !important;
-    z-index: 3 !important;
-    top: 12px !important;
-    width: 32px !important;
-    height: 32px !important;
-    margin: 12px 0 -44px 12px !important;
-    padding: 8px !important;
-    display: grid !important;
-    place-items: center !important;
-    border: 0 !important;
-    border-radius: 4px !important;
-    color: var(--text2) !important;
-    background: var(--bg2) !important;
+  #mf-split-title .mf-split-toggle {
+    grid-column: 1 !important;
     cursor: pointer !important;
   }
 
@@ -726,7 +758,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     width: min(720px, calc(100% - 48px)) !important;
     min-height: 100% !important;
     margin: 0 auto !important;
-    padding: 14px 0 72px !important;
+    padding: 0 0 72px !important;
   }
 
   #mf-split-reader .mf-split-placeholder,
