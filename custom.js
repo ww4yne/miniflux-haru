@@ -196,6 +196,10 @@ ready(() => {
     id: "mf-split-title",
     className: "entry-header",
   });
+  const titleBar = Object.assign(document.createElement("div"), {
+    className: "mf-split-title-bar",
+  });
+  titleHost.appendChild(titleBar);
   const reader = Object.assign(document.createElement("section"), {
     id: "mf-split-reader",
   });
@@ -248,9 +252,9 @@ ready(() => {
     const collapsed = document.body.classList.contains("mf-split-collapsed");
     const label = collapsed ? "显示列表" : "收起列表";
     if (collapsed) {
-      titleHost.prepend(toggle);
+      titleBar.prepend(toggle);
       toggleSpacer.replaceChildren(panelIcon(collapsed));
-      titleHost.appendChild(toggleSpacer);
+      titleBar.appendChild(toggleSpacer);
     } else {
       toggleSpacer.remove();
       toggleItem.appendChild(toggle);
@@ -368,7 +372,7 @@ ready(() => {
         ...[...content.children].map(node => document.importNode(node, true)),
       );
       const heading = inner.querySelector(".entry-header h1");
-      if (heading) titleHost.insertBefore(heading, toggleSpacer.isConnected ? toggleSpacer : null);
+      if (heading) titleBar.insertBefore(heading, toggleSpacer.isConnected ? toggleSpacer : null);
       cleanSplitContent(inner.querySelector(".entry-content"));
       inner.querySelectorAll(".pagination").forEach((pager, index) => {
         if (pager.querySelector(".mf-split-back-wrap")) return;
@@ -554,6 +558,34 @@ ready(() => {
     if (entries.some(entry => entry.isIntersecting)) loadNextPage();
   }, { root: listMain, rootMargin: "200px 0px" });
   if (nextPage) observer.observe(listStatus);
+
+  document.addEventListener("keydown", async event => {
+    if (!desktop.matches || event.defaultPrevented ||
+        event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
+        event.target.closest("input, textarea, select, [contenteditable]")) return;
+    const key = event.key.toLowerCase();
+    if (key !== "j" && key !== "k") return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const direction = key === "j" ? 1 : -1;
+    let entries = [...list.querySelectorAll("article.entry-item")]
+      .filter(article => article.getClientRects().length > 0);
+    let index = selectedArticle ? entries.indexOf(selectedArticle) : (direction > 0 ? -1 : 0);
+    let target = entries[index + direction];
+    if (!target && direction > 0 && nextPage) {
+      await loadNextPage();
+      entries = [...list.querySelectorAll("article.entry-item")]
+        .filter(article => article.getClientRects().length > 0);
+      index = selectedArticle ? entries.indexOf(selectedArticle) : -1;
+      target = entries[index + 1];
+    }
+    if (!target) return;
+    const title = target.querySelector(".item-title a");
+    await load(title.dataset.mfSplitHref, target);
+    title.scrollIntoView({ block: "nearest" });
+    title.focus({ preventScroll: true });
+  }, true);
 
   reader.addEventListener("click", event => {
     if (!desktop.matches || event.metaKey || event.ctrlKey ||
