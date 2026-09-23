@@ -473,6 +473,7 @@ ready(() => {
 
   const nextPageUrl = root => {
     const links = root.querySelectorAll(
+      ".pagination a.pagination-next[href], .pagination a.pagination-forward[href], " +
       ".pagination .pagination-next a[href], .pagination .pagination-forward a[href]",
     );
     const href = links[links.length - 1]?.getAttribute("href");

@@ -646,7 +646,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     scrollbar-gutter: stable !important;
   }
 
-  body.mf-split-active > main > .pagination {
+  body.mf-split-active > main .pagination {
     display: none !important;
   }
 
