@@ -192,6 +192,10 @@ ready(() => {
   syncHeaderHeight();
   addEventListener("resize", syncHeaderHeight);
 
+  const titleHost = Object.assign(document.createElement("section"), {
+    id: "mf-split-title",
+    className: "entry-header",
+  });
   const reader = Object.assign(document.createElement("section"), {
     id: "mf-split-reader",
   });
@@ -204,6 +208,9 @@ ready(() => {
   const toggleItem = Object.assign(document.createElement("li"), {
     className: "mf-split-toggle-item",
   });
+  const toggleSpacer = Object.assign(document.createElement("span"), {
+    className: "mf-split-toggle-spacer",
+  });
   const inner = Object.assign(document.createElement("div"), {
     className: "mf-split-reader-inner",
   });
@@ -213,7 +220,7 @@ ready(() => {
   });
   inner.appendChild(placeholder);
   reader.appendChild(inner);
-  document.body.appendChild(reader);
+  document.body.append(titleHost, reader);
 
   let request;
   let selectedArticle;
@@ -241,8 +248,11 @@ ready(() => {
     const collapsed = document.body.classList.contains("mf-split-collapsed");
     const label = collapsed ? "显示列表" : "收起列表";
     if (collapsed) {
-      reader.prepend(toggle);
+      titleHost.prepend(toggle);
+      toggleSpacer.replaceChildren(panelIcon(collapsed));
+      titleHost.appendChild(toggleSpacer);
     } else {
+      toggleSpacer.remove();
       toggleItem.appendChild(toggle);
       headerMenu.prepend(toggleItem);
     }
@@ -259,6 +269,7 @@ ready(() => {
   renderToggle();
 
   const showMessage = (className, text, detail = "") => {
+    titleHost.querySelector("h1")?.remove();
     const message = Object.assign(document.createElement("div"), {
       className,
       textContent: text,
@@ -356,6 +367,8 @@ ready(() => {
         document.importNode(entry, true),
         ...[...content.children].map(node => document.importNode(node, true)),
       );
+      const heading = inner.querySelector(".entry-header h1");
+      if (heading) titleHost.insertBefore(heading, toggleSpacer.isConnected ? toggleSpacer : null);
       cleanSplitContent(inner.querySelector(".entry-content"));
       inner.querySelectorAll(".pagination").forEach((pager, index) => {
         if (pager.querySelector(".mf-split-back-wrap")) return;
