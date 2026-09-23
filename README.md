@@ -32,8 +32,9 @@ Place your own here. Suggested shots:
   centered 768px reading view and restores the 1128px split layout
 - Both reader pagination rows retain a centered `back to list` link that
   expands the sidebar, clears the reader, and focuses the selected entry
-- The active entry remains visible after `mark_read_on_view`; selecting another
-  entry releases the previous one so hidden-read filtering can remove it
+- The desktop list keeps every entry loaded on the current page visible and
+  independently scrollable; read entries are muted instead of removed, while
+  the active highlight follows the selected entry
 
 ### Reading mode (article body)
 

@@ -636,6 +636,10 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     scrollbar-gutter: stable !important;
   }
 
+  body.mf-split-active .items.hide-read-items article.entry-item {
+    display: block !important;
+  }
+
   body.mf-split-active article.entry-item.mf-split-current {
     display: block !important;
     background: var(--accent-dim) !important;
