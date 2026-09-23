@@ -292,12 +292,13 @@ ready(() => {
   };
 
   document.addEventListener("click", event => {
-    if (!desktop.matches || event.defaultPrevented || event.button !== 0 ||
+    if (!desktop.matches || event.button !== 0 ||
         event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
     const title = event.target.closest("article.entry-item .item-title a");
     if (title) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       load(title.href, title.closest("article.entry-item"));
       return;
     }
@@ -305,9 +306,10 @@ ready(() => {
     const pager = event.target.closest("#mf-split-reader .pagination a[data-page]");
     if (!pager) return;
     event.preventDefault();
+    event.stopImmediatePropagation();
     const id = pager.pathname.match(/\/entry\/(\d+)/)?.[1];
     const article = id && document.querySelector(`article.entry-item[data-id="${id}"]`);
     load(pager.href, article);
-  });
+  }, true);
 
 });
