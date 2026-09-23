@@ -31,12 +31,15 @@ Place your own here. Suggested shots:
 - A panel icon in the left toolbar collapses the list into a centered 768px
   reading view and restores the 1128px split layout
 - Both reader pagination rows retain a centered `back to list` link that
-  expands the sidebar, clears the reader, and focuses the selected entry
+  appears only while the sidebar is collapsed, then expands the sidebar,
+  clears the reader, and focuses the selected entry
 - The desktop list independently scrolls and automatically appends subsequent
   pages; read entries are muted instead of removed, while the active highlight
   follows the selected entry
 - Article content uses the browser document scrollbar instead of a nested
   reader scrollbar
+- `J` / `K` select the next / previous visible entry; reaching the loaded
+  boundary automatically fetches the next list page
 
 ### Reading mode (article body)
 

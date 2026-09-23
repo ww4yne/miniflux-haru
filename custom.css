@@ -678,10 +678,9 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   #mf-split-title {
-    display: grid !important;
+    display: flex !important;
     grid-column: 2 !important;
     grid-row: 1 !important;
-    grid-template-columns: auto minmax(0, 1fr) auto !important;
     align-self: stretch !important;
     align-items: center !important;
     min-width: 0 !important;
@@ -689,6 +688,14 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     padding: 0 !important;
     border-left: 1px solid var(--bg4) !important;
     background: var(--bg) !important;
+  }
+
+  #mf-split-title .mf-split-title-bar {
+    width: min(720px, calc(100% - 48px)) !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center !important;
   }
 
   #mf-split-title h1 {
@@ -754,6 +761,10 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   #mf-split-reader .mf-split-back-wrap {
+    display: none !important;
+  }
+
+  body.mf-split-collapsed #mf-split-reader .mf-split-back-wrap {
     flex: 1 !important;
     display: flex !important;
     justify-content: center !important;
