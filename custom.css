@@ -726,7 +726,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     width: min(720px, calc(100% - 48px)) !important;
     min-height: 100% !important;
     margin: 0 auto !important;
-    padding: 32px 0 72px !important;
+    padding: 14px 0 72px !important;
   }
 
   #mf-split-reader .mf-split-placeholder,
