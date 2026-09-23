@@ -76,8 +76,8 @@ To keep emoji: delete the unicode-emoji walker block in module 6 of `custom.js` 
 4. Save. Hard-refresh once.
 
 Both files are independent. CSS works on its own. JS adds the relocations,
-source chips, theme probe, click-to-mark-above, reading-mode DOM cleanup, and
-desktop split-pane loading.
+source chips, theme probe, explicit mark-above action, reading-mode DOM cleanup,
+and desktop split-pane loading.
 
 ### Database-side install (optional)
 
@@ -145,7 +145,7 @@ Light/dark resolution priority:
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
 | 5 | `batch mark-read API` | posts an explicit set of entry IDs to `entry/status read`; used by the desktop toolbar action |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list, toggles list visibility, and offers an explicit toolbar button to mark unread entries above the selection as read |
+| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list, toggles list visibility, and offers an explicit toolbar button to mark unread entries above the selection as read, then filters the list to unread entries |
 
 ## License
 
