@@ -28,8 +28,10 @@ Place your own here. Suggested shots:
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
   existing 768px reading layout, centered as one unit with independent scrolling
-- Reader toggle collapses the list into a centered 768px reading view and
-  restores the 1128px split layout without affecting mobile navigation
+- A panel icon in the existing entry-action row collapses the list into a
+  centered 768px reading view and restores the 1128px split layout
+- Both reader pagination rows retain a centered `back to list` link that
+  expands the sidebar, clears the reader, and focuses the selected entry
 
 ### Reading mode (article body)
 

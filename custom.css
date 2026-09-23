@@ -658,19 +658,40 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   #mf-split-reader .mf-split-toggle {
-    position: sticky !important;
-    z-index: 2 !important;
-    top: 12px !important;
-    left: 12px !important;
-    margin: 12px 0 -42px 12px !important;
-    padding: 4px 9px !important;
-    border: 1px solid var(--accent-bd) !important;
-    border-radius: 4px !important;
-    color: var(--accent) !important;
-    background: var(--bg2) !important;
-    font: inherit !important;
-    font-size: 12px !important;
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    border: 1px solid transparent !important;
+    border-radius: 3px !important;
+    color: var(--text2) !important;
+    background: transparent !important;
+    box-shadow: none !important;
     cursor: pointer !important;
+  }
+
+  #mf-split-reader .mf-split-toggle:hover {
+    color: var(--accent) !important;
+    border-color: transparent !important;
+    background: transparent !important;
+  }
+
+  #mf-split-reader .mf-split-toggle svg {
+    width: 16px !important;
+    height: 16px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.7 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  #mf-split-reader .mf-split-back-wrap {
+    flex: 1 !important;
+    display: flex !important;
+    justify-content: center !important;
   }
 
   #mf-split-reader .mf-split-reader-inner {
