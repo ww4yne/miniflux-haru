@@ -205,6 +205,7 @@ ready(() => {
   document.body.appendChild(reader);
 
   let request;
+  let selectedArticle;
   const htmlPolicy = trustedTypes.createPolicy("html", {
     createHTML: html => html,
   });
@@ -361,10 +362,11 @@ ready(() => {
         });
         back.addEventListener("click", event => {
           event.preventDefault();
+          const current = selectedArticle;
+          selectedArticle = undefined;
           document.body.classList.remove("mf-split-collapsed");
           renderToggle();
           showMessage("mf-split-placeholder", "选择一篇文章开始阅读");
-          const current = document.querySelector("article.entry-item.mf-split-current");
           current?.classList.remove("mf-split-current");
           if (current) {
             const title = current.querySelector(".item-title a");
@@ -382,6 +384,7 @@ ready(() => {
       document.querySelectorAll("article.entry-item.mf-split-current")
         .forEach(node => node.classList.remove("mf-split-current"));
       article?.classList.add("mf-split-current");
+      if (article) selectedArticle = article;
       if (article && entry.querySelector("[data-toggle-status]")?.dataset.value === "read") {
         article.classList.replace("item-status-unread", "item-status-read");
       }
