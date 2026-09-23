@@ -204,6 +204,22 @@ ready(() => {
     createHTML: html => html,
   });
 
+  const showMessage = (className, text, detail = "") => {
+    const message = Object.assign(document.createElement("div"), {
+      className,
+      textContent: text,
+    });
+    if (detail) {
+      message.append(
+        document.createElement("br"),
+        Object.assign(document.createElement("small"), {
+          textContent: detail,
+        }),
+      );
+    }
+    inner.replaceChildren(message);
+  };
+
   const cleanSplitContent = root => {
     if (!root || root.dataset.cleaned) return;
     root.dataset.cleaned = "1";
@@ -259,6 +275,12 @@ ready(() => {
     const controller = new AbortController();
     request = controller;
     reader.setAttribute("aria-busy", "true");
+    showMessage("mf-split-placeholder", "正在加载正文…");
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 12000);
 
     try {
       const response = await fetch(url, {
@@ -290,21 +312,14 @@ ready(() => {
         article.classList.replace("item-status-unread", "item-status-read");
       }
     } catch (error) {
-      if (error.name !== "AbortError") {
-        const message = Object.assign(document.createElement("div"), {
-          className: "mf-split-error",
-        });
-        message.append(
-          "正文加载失败",
-          document.createElement("br"),
-          Object.assign(document.createElement("small"), {
-            textContent: error.message,
-          }),
-        );
-        inner.replaceChildren(message);
+      if (timedOut) {
+        showMessage("mf-split-error", "正文加载超时", "请求超过 12 秒");
+      } else if (error.name !== "AbortError") {
+        showMessage("mf-split-error", "正文加载失败", error.message);
         console.error("Miniflux split pane could not load entry:", error);
       }
     } finally {
+      clearTimeout(timeout);
       if (request === controller) reader.removeAttribute("aria-busy");
     }
   };
