@@ -123,6 +123,10 @@ body {
 #header-menu li:has(.logout-button) {
   display: none !important;
 }
+/* 分类可从订阅源管理进入，阅读工具栏不重复占位 */
+#header-menu li:has(a[href$="/categories"]) {
+  display: none !important;
+}
 /* form 包着 button 的项：万一以后还有其他 form 项，确保居中对齐 */
 #header-menu li form {
   margin: 0 !important;
@@ -780,6 +784,11 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   #header-menu .mf-mark-above:disabled {
     opacity: 0.35 !important;
     cursor: default !important;
+  }
+
+  #header-menu .mf-mark-above svg {
+    width: 24px !important;
+    height: 24px !important;
   }
 
   .mf-split-list-status[role="button"] {

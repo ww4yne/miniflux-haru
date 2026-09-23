@@ -248,10 +248,15 @@ ready(() => {
     const svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("aria-hidden", "true");
-    for (const pathData of ["M4 7h10M4 12h8M4 17h6", "m16 15 2 2 4-5"]) {
-      const path = document.createElementNS(ns, "path");
-      path.setAttribute("d", pathData);
-      svg.appendChild(path);
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    for (const radius of ["9", "4"]) {
+      const circle = document.createElementNS(ns, "circle");
+      circle.setAttribute("cx", "12");
+      circle.setAttribute("cy", "12");
+      circle.setAttribute("r", radius);
+      svg.appendChild(circle);
     }
     return svg;
   };
