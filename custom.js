@@ -367,12 +367,9 @@ ready(() => {
           const current = document.querySelector("article.entry-item.mf-split-current");
           current?.classList.remove("mf-split-current");
           if (current) {
-            current.tabIndex = -1;
-            current.focus({ preventScroll: true });
-            current.scrollIntoView({ block: "nearest" });
-            current.addEventListener("blur", () => current.removeAttribute("tabindex"), {
-              once: true,
-            });
+            const title = current.querySelector(".item-title a");
+            title?.focus({ preventScroll: true });
+            title?.scrollIntoView({ block: "nearest" });
           }
         });
         wrap.appendChild(back);
@@ -410,11 +407,13 @@ ready(() => {
         title.removeAttribute("href");
         title.removeAttribute("target");
         title.setAttribute("role", "button");
+        title.tabIndex = 0;
       } else if (title.dataset.mfSplitHref) {
         title.href = title.dataset.mfSplitHref;
         if (title.dataset.mfSplitTarget) title.target = title.dataset.mfSplitTarget;
         else title.removeAttribute("target");
         title.removeAttribute("role");
+        title.removeAttribute("tabindex");
       }
     }
   };
