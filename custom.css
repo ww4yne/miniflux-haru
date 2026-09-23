@@ -621,7 +621,12 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     grid-template-columns: minmax(0, 768px) !important;
   }
 
-  body.mf-split-active.mf-split-collapsed > :is(.header, main) {
+  body.mf-split-active.mf-split-collapsed > .header {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body.mf-split-active.mf-split-collapsed > main {
     display: none !important;
   }
 
