@@ -6,8 +6,6 @@
 //   4. 「回到列表」按钮（仅条目详情页）
 //   5. 批量标记已读 API
 //   6. 阅读模式 DOM 兜底
-//   7. 桌面分栏阅读
-//   8. 列表搜索、状态筛选与键盘操作
 // ============================================================
 
 const ready = fn => document.body ? fn() : addEventListener("DOMContentLoaded", fn);
@@ -182,7 +180,7 @@ ready(() => {
 
   const titleHost = Object.assign(document.createElement("section"), {
     id: "mf-split-title",
-    className: "mf-split-toolbar",
+    className: "entry-header",
   });
   const titleBar = Object.assign(document.createElement("div"), {
     className: "mf-split-title-bar",
@@ -212,22 +210,6 @@ ready(() => {
   const toggleSpacer = Object.assign(document.createElement("span"), {
     className: "mf-split-toggle-spacer",
   });
-  const readerLabel = Object.assign(document.createElement("span"), {
-    className: "mf-reader-label",
-    textContent: "阅读视图",
-  });
-  const shortcutHint = Object.assign(document.createElement("span"), {
-    className: "mf-reader-shortcuts",
-    textContent: "J/K 切换 · M 已读 · S 收藏",
-  });
-  const shortcutButton = Object.assign(document.createElement("button"), {
-    className: "mf-shortcut-help-button",
-    type: "button",
-    textContent: "?",
-    title: "键盘快捷键",
-  });
-  shortcutButton.setAttribute("aria-label", "显示键盘快捷键");
-  titleBar.append(readerLabel, shortcutHint, shortcutButton);
   const inner = Object.assign(document.createElement("div"), {
     className: "mf-split-reader-inner",
   });
@@ -241,30 +223,8 @@ ready(() => {
 
   let request;
   let selectedArticle;
-  const htmlPolicy = globalThis.trustedTypes
-    ? trustedTypes.createPolicy("miniflux-haru-html", { createHTML: html => html })
-    : { createHTML: html => html };
-
-  const shortcutDialog = Object.assign(document.createElement("dialog"), {
-    className: "mf-shortcut-dialog",
-  });
-  shortcutDialog.innerHTML = `
-    <div class="mf-shortcut-dialog-inner">
-      <h2>键盘快捷键</h2>
-      <div class="mf-shortcut-row"><span>下一篇 / 上一篇</span><span><kbd>J</kbd><kbd>K</kbd></span></div>
-      <div class="mf-shortcut-row"><span>切换已读状态</span><kbd>M</kbd></div>
-      <div class="mf-shortcut-row"><span>收藏 / 取消收藏</span><kbd>S</kbd></div>
-      <div class="mf-shortcut-row"><span>收起 / 展开列表</span><kbd>B</kbd></div>
-      <div class="mf-shortcut-row"><span>搜索文章</span><kbd>/</kbd></div>
-      <div class="mf-shortcut-row"><span>关闭面板</span><kbd>Esc</kbd></div>
-      <button class="mf-shortcut-close" type="button">知道了</button>
-    </div>`;
-  document.body.appendChild(shortcutDialog);
-  shortcutButton.addEventListener("click", () => shortcutDialog.showModal());
-  shortcutDialog.querySelector(".mf-shortcut-close")
-    .addEventListener("click", () => shortcutDialog.close());
-  shortcutDialog.addEventListener("click", event => {
-    if (event.target === shortcutDialog) shortcutDialog.close();
+  const htmlPolicy = trustedTypes.createPolicy("html", {
+    createHTML: html => html,
   });
 
   const panelIcon = collapsed => {
@@ -479,10 +439,10 @@ ready(() => {
 
       inner.replaceChildren(
         document.importNode(entry, true),
-        ...[...content.children]
-          .filter(node => node !== entry)
-          .map(node => document.importNode(node, true)),
+        ...[...content.children].map(node => document.importNode(node, true)),
       );
+      const heading = inner.querySelector(".entry-header h1");
+      if (heading) titleBar.insertBefore(heading, toggleSpacer.isConnected ? toggleSpacer : null);
       cleanSplitContent(inner.querySelector(".entry-content"));
       inner.querySelectorAll(".pagination").forEach((pager, index) => {
         if (pager.querySelector(".mf-split-back-wrap")) return;
@@ -518,7 +478,7 @@ ready(() => {
         wrap.appendChild(back);
         pager.insertBefore(wrap, next);
       });
-      reader.scrollTo({ top: 0, behavior: "instant" });
+      scrollTo({ top: 0 });
 
       if (article) {
         document.querySelectorAll("article.entry-item.mf-split-current")
@@ -579,7 +539,6 @@ ready(() => {
       }
     }
   };
-  let refreshListControls = () => {};
   const decorateListEntries = root => {
     for (const article of root.querySelectorAll("article.entry-item")) {
       if (!article.dataset.iconChecked) {
@@ -590,109 +549,13 @@ ready(() => {
       }
     }
     configureTitleLinks();
-    refreshListControls();
   };
   decorateListEntries(list);
   desktop.addEventListener("change", configureTitleLinks);
 
-  const controls = Object.assign(document.createElement("section"), {
-    id: "mf-list-controls",
-  });
-  controls.setAttribute("aria-label", "文章筛选");
-  controls.innerHTML = `
-    <label class="mf-list-search-wrap">
-      <span class="sr-only">搜索已加载的文章</span>
-      <input class="mf-list-search" type="search" placeholder="搜索文章或来源…" autocomplete="off">
-      <span class="mf-list-search-key" aria-hidden="true">/</span>
-    </label>
-    <div class="mf-list-filters" role="group" aria-label="按状态筛选">
-      <button class="mf-list-filter" type="button" data-filter="all" aria-pressed="true">全部 <span class="mf-list-filter-count"></span></button>
-      <button class="mf-list-filter" type="button" data-filter="unread" aria-pressed="false">未读 <span class="mf-list-filter-count"></span></button>
-      <button class="mf-list-filter" type="button" data-filter="starred" aria-pressed="false">收藏 <span class="mf-list-filter-count"></span></button>
-    </div>`;
-  listMain.insertBefore(controls, list);
-  const searchInput = controls.querySelector(".mf-list-search");
-  const filterButtons = [...controls.querySelectorAll(".mf-list-filter")];
-  const emptyState = Object.assign(document.createElement("div"), {
-    className: "mf-list-empty",
-    textContent: "没有匹配的文章",
-  });
-  emptyState.hidden = true;
-  list.after(emptyState);
-  let activeFilter = "all";
-
-  const isStarred = article =>
-    article.querySelector("[data-toggle-starred]")?.dataset.value === "star";
-  refreshListControls = () => {
-    const articles = [...list.querySelectorAll("article.entry-item")];
-    const query = searchInput.value.trim().toLocaleLowerCase();
-    let visibleCount = 0;
-    for (const article of articles) {
-      const matchesQuery = !query ||
-        article.textContent.toLocaleLowerCase().includes(query);
-      const matchesFilter = activeFilter === "all" ||
-        (activeFilter === "unread" && article.classList.contains("item-status-unread")) ||
-        (activeFilter === "starred" && isStarred(article));
-      const visible = matchesQuery && matchesFilter;
-      article.classList.toggle("mf-filter-hidden", !visible);
-      if (visible) visibleCount += 1;
-    }
-    const totals = {
-      all: articles.length,
-      unread: articles.filter(article =>
-        article.classList.contains("item-status-unread")).length,
-      starred: articles.filter(isStarred).length,
-    };
-    for (const button of filterButtons) {
-      button.querySelector(".mf-list-filter-count").textContent =
-        String(totals[button.dataset.filter]);
-    }
-    emptyState.hidden = visibleCount !== 0;
-    renderMarkAbove();
-  };
-  searchInput.addEventListener("input", refreshListControls);
-  for (const button of filterButtons) {
-    button.addEventListener("click", () => {
-      activeFilter = button.dataset.filter;
-      for (const candidate of filterButtons) {
-        candidate.setAttribute(
-          "aria-pressed",
-          String(candidate === button),
-        );
-      }
-      refreshListControls();
-    });
-  }
-  new MutationObserver(refreshListControls).observe(list, {
-    attributes: true,
-    attributeFilter: ["class", "data-value"],
-    subtree: true,
-  });
-  refreshListControls();
-
-  const syncReaderActionToList = action => {
-    if (!selectedArticle) return;
-    if (action.matches("[data-toggle-status]")) {
-      const unread = action.dataset.value === "unread";
-      selectedArticle.classList.toggle("item-status-unread", unread);
-      selectedArticle.classList.toggle("item-status-read", !unread);
-    }
-    if (action.matches("[data-toggle-starred]")) {
-      const listAction = selectedArticle.querySelector("[data-toggle-starred]");
-      if (listAction) listAction.dataset.value = action.dataset.value;
-    }
-    refreshListControls();
-  };
-  reader.addEventListener("click", event => {
-    const action = event.target.closest("[data-toggle-status], [data-toggle-starred]");
-    if (!action) return;
-    setTimeout(() => syncReaderActionToList(action), 300);
-  });
-
   list.addEventListener("click", event => {
     const article = event.target.closest("article.entry-item");
     if (!article || !desktop.matches) return;
-    if (event.target.closest(".item-meta-icons, a[data-feed-link]")) return;
     const title = article.querySelector(".item-title a");
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -795,31 +658,6 @@ ready(() => {
         event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
         event.target.closest("input, textarea, select, [contenteditable]")) return;
     const key = event.key.toLowerCase();
-    if (key === "/") {
-      event.preventDefault();
-      searchInput.focus();
-      return;
-    }
-    if (key === "?") {
-      event.preventDefault();
-      shortcutDialog.showModal();
-      return;
-    }
-    if (key === "b") {
-      event.preventDefault();
-      toggle.click();
-      return;
-    }
-    if (key === "m" || key === "s") {
-      const selector = key === "m" ? "[data-toggle-status]" : "[data-toggle-starred]";
-      const action = inner.querySelector(`.entry-header ${selector}`);
-      if (action) {
-        event.preventDefault();
-        action.click();
-        setTimeout(refreshListControls, 250);
-      }
-      return;
-    }
     if (key !== "j" && key !== "k") return;
     event.preventDefault();
     event.stopImmediatePropagation();
