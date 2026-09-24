@@ -195,9 +195,6 @@ ready(() => {
     type: "button",
   });
   toggle.setAttribute("aria-expanded", "true");
-  const toggleItem = Object.assign(document.createElement("li"), {
-    className: "mf-split-toggle-item",
-  });
   const markAbove = Object.assign(document.createElement("button"), {
     className: "mf-mark-above",
     type: "button",
@@ -207,9 +204,6 @@ ready(() => {
     className: "mf-mark-above-item",
   });
   markAboveItem.appendChild(markAbove);
-  const toggleSpacer = Object.assign(document.createElement("span"), {
-    className: "mf-split-toggle-spacer",
-  });
   const inner = Object.assign(document.createElement("div"), {
     className: "mf-split-reader-inner",
   });
@@ -369,6 +363,67 @@ ready(() => {
   };
   markAbove.appendChild(markAboveIcon());
 
+  const toolbarIcon = paths => {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    for (const pathData of paths) {
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", pathData);
+      svg.appendChild(path);
+    }
+    return svg;
+  };
+  const toolbarButton = (className, label, paths) => {
+    const button = Object.assign(document.createElement("button"), {
+      className: `mf-reader-toolbar-button ${className}`,
+      type: "button",
+      disabled: true,
+    });
+    button.setAttribute("aria-label", label);
+    button.setAttribute("title", label);
+    button.appendChild(toolbarIcon(paths));
+    return button;
+  };
+  const previousButton = toolbarButton(
+    "mf-reader-previous",
+    "上一篇 (K)",
+    ["m14 6-6 6 6 6"],
+  );
+  const nextButton = toolbarButton(
+    "mf-reader-next",
+    "下一篇 (J)",
+    ["m10 6 6 6-6 6"],
+  );
+  const readButton = toolbarButton(
+    "mf-reader-read",
+    "切换已读状态 (M)",
+    ["M20 11a8 8 0 1 1-3-6", "m9 11 2 2 4-5"],
+  );
+  const starButton = toolbarButton(
+    "mf-reader-star",
+    "收藏 (S)",
+    ["m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"],
+  );
+  const originalButton = toolbarButton(
+    "mf-reader-original",
+    "查看原文",
+    ["M14 4h6v6", "m20 4-9 9", "M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"],
+  );
+  const navigationGroup = Object.assign(document.createElement("div"), {
+    className: "mf-reader-toolbar-group",
+  });
+  const actionGroup = Object.assign(document.createElement("div"), {
+    className: "mf-reader-toolbar-group",
+  });
+  const toolbarSpacer = Object.assign(document.createElement("span"), {
+    className: "mf-reader-toolbar-spacer",
+  });
+  navigationGroup.append(toggle, previousButton, nextButton);
+  actionGroup.append(readButton, starButton, originalButton);
+  titleBar.append(navigationGroup, toolbarSpacer, actionGroup);
+
   const unreadAbove = () => {
     if (!selectedArticle) return [];
     const entries = [...list.querySelectorAll("article.entry-item")];
@@ -391,15 +446,7 @@ ready(() => {
   const renderToggle = () => {
     const collapsed = document.body.classList.contains("mf-split-collapsed");
     const label = collapsed ? "显示列表" : "收起列表";
-    if (collapsed) {
-      titleBar.prepend(toggle);
-      toggleSpacer.replaceChildren(panelIcon(collapsed));
-      titleBar.appendChild(toggleSpacer);
-    } else {
-      toggleSpacer.remove();
-      toggleItem.appendChild(toggle);
-      headerMenu.prepend(toggleItem, markAboveItem);
-    }
+    if (!markAboveItem.isConnected) headerMenu.prepend(markAboveItem);
     toggle.replaceChildren(panelIcon(collapsed));
     toggle.setAttribute("aria-label", label);
     toggle.setAttribute("title", label);
@@ -412,6 +459,108 @@ ready(() => {
   });
   renderToggle();
   renderMarkAbove();
+
+  const resetReaderToolbar = () => {
+    for (const button of [
+      previousButton,
+      nextButton,
+      readButton,
+      starButton,
+      originalButton,
+    ]) {
+      button.disabled = true;
+      button.classList.remove("mf-reader-toolbar-active");
+    }
+    originalButton.removeAttribute("data-href");
+  };
+  const syncReaderToolbar = () => {
+    const previous = inner.querySelector('.pagination a[data-page="previous"]');
+    const next = inner.querySelector('.pagination a[data-page="next"]');
+    const status = inner.querySelector(".entry-header [data-toggle-status]");
+    const starred = inner.querySelector(".entry-header [data-toggle-starred]");
+    const original = inner.querySelector(".entry-header h1 a[href]");
+    previousButton.disabled = !previous;
+    nextButton.disabled = !next;
+    readButton.disabled = !status;
+    starButton.disabled = !starred;
+    originalButton.disabled = !original;
+    readButton.classList.toggle(
+      "mf-reader-toolbar-active",
+      status?.dataset.value === "read",
+    );
+    starButton.classList.toggle(
+      "mf-reader-toolbar-active",
+      starred?.dataset.value === "star",
+    );
+    const readLabel = status?.dataset.value === "read" ? "标为未读 (M)" : "标为已读 (M)";
+    const starLabel = starred?.dataset.value === "star" ? "取消收藏 (S)" : "收藏 (S)";
+    readButton.setAttribute("title", readLabel);
+    readButton.setAttribute("aria-label", readLabel);
+    starButton.setAttribute("title", starLabel);
+    starButton.setAttribute("aria-label", starLabel);
+    if (original) originalButton.dataset.href = original.href;
+    else originalButton.removeAttribute("data-href");
+  };
+  const syncSelectedEntryAction = (key, action) => {
+    if (selectedArticle) {
+      if (key === "m") {
+        const unread = action.dataset.value === "unread";
+        selectedArticle.classList.toggle("item-status-unread", unread);
+        selectedArticle.classList.toggle("item-status-read", !unread);
+        const listAction = selectedArticle.querySelector("[data-toggle-status]");
+        if (listAction) listAction.dataset.value = action.dataset.value;
+      } else {
+        const listAction = selectedArticle.querySelector("[data-toggle-starred]");
+        if (listAction) listAction.dataset.value = action.dataset.value;
+      }
+      applyListFilter();
+      renderMarkAbove();
+    }
+    syncReaderToolbar();
+  };
+  const activateEntryAction = key => {
+    const selector = key === "m" ? "[data-toggle-status]" : "[data-toggle-starred]";
+    const action = inner.querySelector(`.entry-header ${selector}`);
+    if (!action) return;
+    const initialValue = action.dataset.value;
+    let actionSynced = false;
+    const syncAction = () => {
+      if (actionSynced) return;
+      actionSynced = true;
+      syncSelectedEntryAction(key, action);
+    };
+    const actionObserver = new MutationObserver(() => {
+      if (action.dataset.value === initialValue) return;
+      actionObserver.disconnect();
+      syncAction();
+    });
+    actionObserver.observe(action, {
+      attributes: true,
+      attributeFilter: ["data-value"],
+    });
+    action.click();
+    setTimeout(() => {
+      actionObserver.disconnect();
+      if (action.dataset.value !== initialValue) syncAction();
+    }, 3000);
+  };
+  const loadAdjacentEntry = direction => {
+    const link = inner.querySelector(`.pagination a[data-page="${direction}"]`);
+    if (!link) return;
+    const id = link.pathname.match(/\/entry\/(\d+)/)?.[1];
+    const article = id && list.querySelector(`article.entry-item[data-id="${id}"]`);
+    load(link.href, article);
+  };
+  previousButton.addEventListener("click", () => loadAdjacentEntry("previous"));
+  nextButton.addEventListener("click", () => loadAdjacentEntry("next"));
+  readButton.addEventListener("click", () => activateEntryAction("m"));
+  starButton.addEventListener("click", () => activateEntryAction("s"));
+  originalButton.addEventListener("click", () => {
+    if (originalButton.dataset.href) {
+      window.open(originalButton.dataset.href, "_blank", "noopener,noreferrer");
+    }
+  });
+  resetReaderToolbar();
 
   const actionStatus = Object.assign(document.createElement("div"), {
     className: "mf-split-action-status",
@@ -451,6 +600,7 @@ ready(() => {
 
   const showMessage = (className, text, detail = "") => {
     titleHost.querySelector("h1")?.remove();
+    resetReaderToolbar();
     const message = Object.assign(document.createElement("div"), {
       className,
       textContent: text,
@@ -599,10 +749,19 @@ ready(() => {
         article.setAttribute("aria-selected", "true");
         selectedArticle = article;
         renderMarkAbove();
+      } else {
+        document.querySelectorAll("article.entry-item.mf-split-current")
+          .forEach(node => {
+            node.classList.remove("mf-split-current");
+            node.setAttribute("aria-selected", "false");
+          });
+        selectedArticle = null;
+        renderMarkAbove();
       }
       if (article && entry.querySelector("[data-toggle-status]")?.dataset.value === "read") {
         article.classList.replace("item-status-unread", "item-status-read");
       }
+      syncReaderToolbar();
     } catch (error) {
       if (timedOut) {
         showMessage("mf-split-error", "正文加载超时", "请求超过 12 秒");
@@ -848,40 +1007,11 @@ ready(() => {
       toggle.click();
       return;
     }
-    if ((key === "m" || key === "s") && selectedArticle) {
+    if (key === "m" || key === "s") {
       const selector = key === "m" ? "[data-toggle-status]" : "[data-toggle-starred]";
-      const action = inner.querySelector(`.entry-header ${selector}`);
-      if (!action) return;
+      if (!inner.querySelector(`.entry-header ${selector}`)) return;
       event.preventDefault();
-      const initialValue = action.dataset.value;
-      let actionSynced = false;
-      const syncAction = () => {
-        if (actionSynced) return;
-        actionSynced = true;
-        if (key === "m") {
-          const unread = action.dataset.value === "unread";
-          selectedArticle.classList.toggle("item-status-unread", unread);
-          selectedArticle.classList.toggle("item-status-read", !unread);
-        } else {
-          const listAction = selectedArticle.querySelector("[data-toggle-starred]");
-          if (listAction) listAction.dataset.value = action.dataset.value;
-        }
-        applyListFilter();
-      };
-      const actionObserver = new MutationObserver(() => {
-        if (action.dataset.value === initialValue) return;
-        actionObserver.disconnect();
-        syncAction();
-      });
-      actionObserver.observe(action, {
-        attributes: true,
-        attributeFilter: ["data-value"],
-      });
-      action.click();
-      setTimeout(() => {
-        actionObserver.disconnect();
-        if (action.dataset.value !== initialValue) syncAction();
-      }, 3000);
+      activateEntryAction(key);
       return;
     }
     if (key !== "j" && key !== "k") return;

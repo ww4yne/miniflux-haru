@@ -841,20 +841,38 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
 
   /* Compact refinement: keep controls available without adding a permanent row. */
   body.mf-split-active > .header {
-    margin-top: 6px !important;
-    margin-bottom: 6px !important;
+    height: 40px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  body.mf-split-active > .header nav {
+    height: 40px !important;
   }
 
   body.mf-split-active article.entry-item {
     box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
     min-height: 32px !important;
     padding-top: 4px !important;
     padding-bottom: 4px !important;
   }
 
+  body.mf-split-active .items.hide-read-items article.entry-item,
+  body.mf-split-active article.entry-item.mf-split-current {
+    display: flex !important;
+  }
+
+  body.mf-split-active article.entry-item .item-header {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
   body.mf-split-active article.entry-item .item-title a {
-    font-size: 12.5px !important;
-    line-height: 1.35 !important;
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    font-weight: 500 !important;
   }
 
   body.mf-split-active article.entry-item .item-title a[data-icon-letter]::before {
@@ -870,16 +888,76 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   #mf-split-title {
-    min-height: 36px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+
+  #mf-split-title .mf-split-title-bar {
+    display: flex !important;
+    width: min(720px, calc(100% - 32px)) !important;
+    gap: 2px !important;
+  }
+
+  #mf-split-title .mf-reader-toolbar-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  #mf-split-title .mf-reader-toolbar-spacer {
+    flex: 1 1 auto !important;
+  }
+
+  #mf-split-title .mf-reader-toolbar-button,
+  #mf-split-title .mf-split-toggle {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: var(--text2) !important;
+    cursor: pointer !important;
+  }
+
+  #mf-split-title .mf-reader-toolbar-button:hover,
+  #mf-split-title .mf-reader-toolbar-button:focus-visible,
+  #mf-split-title .mf-reader-toolbar-button.mf-reader-toolbar-active,
+  #mf-split-title .mf-split-toggle:hover,
+  #mf-split-title .mf-split-toggle:focus-visible {
+    background: var(--accent-dim) !important;
+    color: var(--accent) !important;
+  }
+
+  #mf-split-title .mf-reader-toolbar-button:disabled {
+    opacity: 0.3 !important;
+    cursor: default !important;
+  }
+
+  #mf-split-title .mf-reader-toolbar-button svg {
+    width: 16px !important;
+    height: 16px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.7 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
   }
 
   #mf-split-reader .mf-split-reader-inner {
-    padding-top: 22px !important;
+    width: min(680px, calc(100% - 48px)) !important;
+    padding-top: 26px !important;
   }
 
   #mf-split-reader .entry-header {
     justify-content: center !important;
-    margin-bottom: 14px !important;
+    margin-bottom: 18px !important;
+    padding-bottom: 11px !important;
+    border-bottom: 1px solid var(--bg3) !important;
   }
 
   #mf-split-reader .entry-header h1 {
@@ -896,13 +974,43 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   #mf-split-reader .entry-header .entry-actions,
-  #mf-split-reader .entry-header .entry-meta {
+  #mf-split-reader .pagination-entry-top {
+    display: none !important;
+  }
+
+  #mf-split-reader .entry-header .entry-actions {
+    display: none !important;
+  }
+
+  #mf-split-reader .entry-header .entry-meta,
+  #mf-split-reader .entry-header .entry-date {
+    display: inline-flex !important;
+    align-items: center !important;
     margin-left: 0 !important;
+    color: var(--text2) !important;
+    font-size: 10.5px !important;
+    line-height: 1.4 !important;
+  }
+
+  #mf-split-reader .entry-header .entry-date::before {
+    margin-right: 8px !important;
+    color: var(--bg4) !important;
+    content: "·" !important;
   }
 
   #mf-split-reader .entry-content {
-    font-size: 17px !important;
+    font-size: 16px !important;
     line-height: 1.72 !important;
+  }
+
+  #mf-split-reader .entry-content p {
+    margin-bottom: 0.9em !important;
+  }
+
+  #mf-split-reader .entry-content blockquote {
+    margin-top: 1.4em !important;
+    margin-bottom: 1.4em !important;
+    border-left-width: 2px !important;
   }
 
   body.mf-split-active article.entry-item.mf-list-filter-hidden {

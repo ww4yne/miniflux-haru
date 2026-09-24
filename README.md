@@ -30,9 +30,10 @@ Place your own here. Suggested shots:
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
   existing 768px reading layout, centered as one unit with independent scrolling
-- A panel icon in the left toolbar collapses the list into a centered 768px
-  reading view and restores the 1128px split layout
-- Both reader pagination rows retain a centered `back to list` link that
+- A 40px reader toolbar provides sidebar collapse, previous / next entry,
+  read, starred, and original-article actions while retaining Miniflux's
+  native action state
+- The bottom reader pagination retains a centered `back to list` link that
   appears only while the sidebar is collapsed, then expands the sidebar,
   clears the reader, and focuses the selected entry
 - The desktop list initially renders only enough entries to fill its viewport
@@ -51,7 +52,7 @@ Place your own here. Suggested shots:
 
 ### Reading mode (article body)
 
-- 17px / 1.72 split-reader scale, with the existing larger mobile scale retained
+- 16px / 1.72 split-reader scale, with the existing larger mobile scale retained
 - 2-em first-line indent on top-level paragraphs (CJK convention), suppressed inside lists/blockquotes/cells
 - `text-align: justify` with `inter-ideograph` for Chinese reading
 - Headings normalized to four sizes (20 / 18 / 16 / 15) regardless of source markup
