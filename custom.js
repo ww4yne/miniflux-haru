@@ -223,8 +223,115 @@ ready(() => {
 
   let request;
   let selectedArticle;
-  const htmlPolicy = trustedTypes.createPolicy("html", {
-    createHTML: html => html,
+  const htmlPolicy = globalThis.trustedTypes
+    ? trustedTypes.createPolicy("miniflux-haru-html", { createHTML: html => html })
+    : { createHTML: html => html };
+
+  const searchButton = Object.assign(document.createElement("button"), {
+    className: "mf-list-search-button",
+    type: "button",
+  });
+  searchButton.setAttribute("aria-label", "搜索和筛选");
+  searchButton.setAttribute("title", "搜索和筛选 (/)");
+  const searchIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  searchIcon.setAttribute("viewBox", "0 0 24 24");
+  searchIcon.setAttribute("aria-hidden", "true");
+  const searchCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  searchCircle.setAttribute("cx", "11");
+  searchCircle.setAttribute("cy", "11");
+  searchCircle.setAttribute("r", "7");
+  const searchHandle = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  searchHandle.setAttribute("d", "m16 16 5 5");
+  searchIcon.append(searchCircle, searchHandle);
+  searchButton.appendChild(searchIcon);
+  const searchItem = Object.assign(document.createElement("li"), {
+    className: "mf-list-search-item",
+  });
+  searchItem.appendChild(searchButton);
+  headerMenu.prepend(searchItem);
+
+  const searchPanel = Object.assign(document.createElement("section"), {
+    className: "mf-list-search-panel",
+  });
+  searchPanel.setAttribute("aria-label", "搜索和筛选已加载的文章");
+  const searchInput = Object.assign(document.createElement("input"), {
+    className: "mf-list-search-input",
+    type: "search",
+    placeholder: "搜索文章或来源…",
+    autocomplete: "off",
+  });
+  const filterRow = Object.assign(document.createElement("div"), {
+    className: "mf-list-filter-row",
+  });
+  const filterStatus = Object.assign(document.createElement("span"), {
+    className: "mf-list-filter-status",
+  });
+  let activeFilter = "all";
+  for (const [value, label] of [
+    ["all", "全部"],
+    ["unread", "未读"],
+    ["starred", "收藏"],
+  ]) {
+    const button = Object.assign(document.createElement("button"), {
+      className: "mf-list-filter",
+      type: "button",
+      textContent: label,
+    });
+    button.dataset.filter = value;
+    button.setAttribute("aria-pressed", String(value === activeFilter));
+    filterRow.appendChild(button);
+  }
+  searchPanel.append(searchInput, filterRow, filterStatus);
+  document.body.appendChild(searchPanel);
+
+  const articleIsStarred = article =>
+    article.querySelector("[data-toggle-starred]")?.dataset.value === "star";
+  const applyListFilter = () => {
+    const query = searchInput.value.trim().toLocaleLowerCase();
+    let visible = 0;
+    const articles = [...list.querySelectorAll("article.entry-item")];
+    for (const article of articles) {
+      const matchesText = !query ||
+        article.textContent.toLocaleLowerCase().includes(query);
+      const matchesFilter = activeFilter === "all" ||
+        (activeFilter === "unread" && article.classList.contains("item-status-unread")) ||
+        (activeFilter === "starred" && articleIsStarred(article));
+      article.classList.toggle("mf-list-filter-hidden", !(matchesText && matchesFilter));
+      if (matchesText && matchesFilter) visible += 1;
+    }
+    filterStatus.textContent = visible ? `匹配 ${visible} 条` : "没有匹配文章";
+  };
+  const openSearch = () => {
+    searchPanel.classList.add("mf-list-search-open");
+    searchButton.setAttribute("aria-expanded", "true");
+    searchInput.focus();
+  };
+  const closeSearch = () => {
+    searchPanel.classList.remove("mf-list-search-open");
+    searchButton.setAttribute("aria-expanded", "false");
+    searchButton.focus();
+  };
+  searchButton.setAttribute("aria-expanded", "false");
+  searchButton.addEventListener("click", () => {
+    if (searchPanel.classList.contains("mf-list-search-open")) closeSearch();
+    else openSearch();
+  });
+  document.addEventListener("click", event => {
+    if (!searchPanel.classList.contains("mf-list-search-open") ||
+        searchPanel.contains(event.target) ||
+        searchButton.contains(event.target)) return;
+    searchPanel.classList.remove("mf-list-search-open");
+    searchButton.setAttribute("aria-expanded", "false");
+  });
+  searchInput.addEventListener("input", applyListFilter);
+  filterRow.addEventListener("click", event => {
+    const button = event.target.closest(".mf-list-filter");
+    if (!button) return;
+    activeFilter = button.dataset.filter;
+    for (const candidate of filterRow.children) {
+      candidate.setAttribute("aria-pressed", String(candidate === button));
+    }
+    applyListFilter();
   });
 
   const panelIcon = collapsed => {
@@ -439,10 +546,10 @@ ready(() => {
 
       inner.replaceChildren(
         document.importNode(entry, true),
-        ...[...content.children].map(node => document.importNode(node, true)),
+        ...[...content.children]
+          .filter(node => node !== entry)
+          .map(node => document.importNode(node, true)),
       );
-      const heading = inner.querySelector(".entry-header h1");
-      if (heading) titleBar.insertBefore(heading, toggleSpacer.isConnected ? toggleSpacer : null);
       cleanSplitContent(inner.querySelector(".entry-content"));
       inner.querySelectorAll(".pagination").forEach((pager, index) => {
         if (pager.querySelector(".mf-split-back-wrap")) return;
@@ -549,6 +656,7 @@ ready(() => {
       }
     }
     configureTitleLinks();
+    applyListFilter();
   };
   decorateListEntries(list);
   desktop.addEventListener("change", configureTitleLinks);
@@ -597,9 +705,41 @@ ready(() => {
     textContent: nextPage ? "继续滚动加载" : "已加载全部",
   });
   listMain.appendChild(listStatus);
+  let progressiveReady = false;
+  let progressiveBusy = false;
+  const listBatchSize = () => {
+    const sample = list.querySelector("article.entry-item:not(.mf-list-progressive-hidden)");
+    const rowHeight = sample?.getBoundingClientRect().height || 30;
+    return Math.max(8, Math.ceil(listMain.clientHeight / rowHeight) + 1);
+  };
+  const progressivePending = () =>
+    [...list.querySelectorAll("article.entry-item.mf-list-progressive-hidden")]
+      .filter(article => !article.classList.contains("mf-list-filter-hidden"));
+  const updateProgressiveStatus = () => {
+    listStatus.textContent = progressivePending().length || nextPage
+      ? "继续滚动加载"
+      : "已加载全部";
+  };
+  const revealProgressiveBatch = () => {
+    const pending = progressivePending();
+    const batch = pending.slice(0, listBatchSize());
+    for (const article of batch) article.classList.remove("mf-list-progressive-hidden");
+    updateProgressiveStatus();
+    return batch.length;
+  };
+  const initializeProgressiveList = () => {
+    const entries = [...list.querySelectorAll("article.entry-item")];
+    const initialCount = listBatchSize();
+    entries.forEach((article, index) => {
+      article.classList.toggle("mf-list-progressive-hidden", index >= initialCount);
+    });
+    progressiveReady = true;
+    updateProgressiveStatus();
+  };
+  initializeProgressiveList();
 
   const loadNextPage = async () => {
-    if (!nextPage || loadingNextPage || !desktop.matches) return;
+    if (!nextPage || loadingNextPage || !desktop.matches) return [];
     loadingNextPage = true;
     const url = nextPage;
     listStatus.removeAttribute("role");
@@ -624,40 +764,126 @@ ready(() => {
         .filter(node => !knownIds.has(node.dataset.id))
         .map(node => document.importNode(node, true));
       if (!entries.length) throw new Error("Next page contained no new entries");
+      if (progressiveReady) {
+        for (const article of entries) article.classList.add("mf-list-progressive-hidden");
+      }
       list.append(...entries);
       decorateListEntries(list);
       nextPage = nextPageUrl(page);
-      listStatus.textContent = nextPage ? "继续滚动加载" : "已加载全部";
-      if (!nextPage) observer.disconnect();
+      updateProgressiveStatus();
+      return entries;
     } catch (error) {
       listStatus.textContent = `加载更多失败：${error.message}（点击重试）`;
       listStatus.setAttribute("role", "button");
       listStatus.tabIndex = 0;
       console.error("Miniflux split list could not load the next page:", error);
+      return [];
     } finally {
       loadingNextPage = false;
     }
   };
+  const advanceProgressiveList = async () => {
+    if (progressiveBusy) return;
+    progressiveBusy = true;
+    try {
+      if (revealProgressiveBatch()) return;
+      if (!nextPage) {
+        listStatus.textContent = "已加载全部";
+        return;
+      }
+      const added = await loadNextPage();
+      if (added.length) revealProgressiveBatch();
+    } finally {
+      progressiveBusy = false;
+    }
+  };
+  const ensureScrollableList = async () => {
+    if (!desktop.matches ||
+        listMain.scrollHeight > listMain.clientHeight + 1 ||
+        (!progressivePending().length && !nextPage)) return;
+    await advanceProgressiveList();
+    requestAnimationFrame(ensureScrollableList);
+  };
+  requestAnimationFrame(ensureScrollableList);
   listStatus.addEventListener("click", () => {
-    if (listStatus.getAttribute("role") === "button") loadNextPage();
+    if (listStatus.getAttribute("role") === "button") advanceProgressiveList();
   });
   listStatus.addEventListener("keydown", event => {
     if (listStatus.getAttribute("role") === "button" &&
         (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
-      loadNextPage();
+      advanceProgressiveList();
     }
   });
-  const observer = new IntersectionObserver(entries => {
-    if (entries.some(entry => entry.isIntersecting)) loadNextPage();
-  }, { root: listMain, rootMargin: "200px 0px" });
-  if (nextPage) observer.observe(listStatus);
+  listMain.addEventListener("scroll", event => {
+    if (!event.isTrusted) return;
+    const remaining = listMain.scrollHeight - listMain.scrollTop - listMain.clientHeight;
+    if (remaining <= 48) advanceProgressiveList();
+  }, { passive: true });
 
   document.addEventListener("keydown", async event => {
-    if (!desktop.matches || event.defaultPrevented ||
-        event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
+    if (!desktop.matches || event.defaultPrevented) return;
+    if (event.target === searchInput) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSearch();
+      }
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
         event.target.closest("input, textarea, select, [contenteditable]")) return;
     const key = event.key.toLowerCase();
+    if (key === "/") {
+      event.preventDefault();
+      openSearch();
+      return;
+    }
+    if (key === "escape" && searchPanel.classList.contains("mf-list-search-open")) {
+      event.preventDefault();
+      closeSearch();
+      return;
+    }
+    if (key === "b") {
+      event.preventDefault();
+      toggle.click();
+      return;
+    }
+    if ((key === "m" || key === "s") && selectedArticle) {
+      const selector = key === "m" ? "[data-toggle-status]" : "[data-toggle-starred]";
+      const action = inner.querySelector(`.entry-header ${selector}`);
+      if (!action) return;
+      event.preventDefault();
+      const initialValue = action.dataset.value;
+      let actionSynced = false;
+      const syncAction = () => {
+        if (actionSynced) return;
+        actionSynced = true;
+        if (key === "m") {
+          const unread = action.dataset.value === "unread";
+          selectedArticle.classList.toggle("item-status-unread", unread);
+          selectedArticle.classList.toggle("item-status-read", !unread);
+        } else {
+          const listAction = selectedArticle.querySelector("[data-toggle-starred]");
+          if (listAction) listAction.dataset.value = action.dataset.value;
+        }
+        applyListFilter();
+      };
+      const actionObserver = new MutationObserver(() => {
+        if (action.dataset.value === initialValue) return;
+        actionObserver.disconnect();
+        syncAction();
+      });
+      actionObserver.observe(action, {
+        attributes: true,
+        attributeFilter: ["data-value"],
+      });
+      action.click();
+      setTimeout(() => {
+        actionObserver.disconnect();
+        if (action.dataset.value !== initialValue) syncAction();
+      }, 3000);
+      return;
+    }
     if (key !== "j" && key !== "k") return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -667,8 +893,9 @@ ready(() => {
       .filter(article => article.getClientRects().length > 0);
     let index = selectedArticle ? entries.indexOf(selectedArticle) : (direction > 0 ? -1 : 0);
     let target = entries[index + direction];
-    if (!target && direction > 0 && nextPage) {
-      await loadNextPage();
+    if (!target && direction > 0 &&
+        (progressivePending().length || nextPage)) {
+      await advanceProgressiveList();
       entries = [...list.querySelectorAll("article.entry-item")]
         .filter(article => article.getClientRects().length > 0);
       index = selectedArticle ? entries.indexOf(selectedArticle) : -1;

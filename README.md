@@ -24,6 +24,8 @@ Place your own here. Suggested shots:
 - Tracks Miniflux's actual theme (not just OS preference) via a runtime background-color probe
 - Compact header: logo left, SVG-only icon menu right, single row on every viewport
 - Compact entry list: first-letter source chip replacing favicons, single-line ellipsis titles, 3-px accent unread bar on the left
+- On-demand search and All / Unread / Starred filters; the controls stay hidden
+  until the toolbar button or `/` shortcut is used
 - Native `mark page as read` button relocated into the bottom pagination row (saves a footer row)
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
@@ -33,17 +35,23 @@ Place your own here. Suggested shots:
 - Both reader pagination rows retain a centered `back to list` link that
   appears only while the sidebar is collapsed, then expands the sidebar,
   clears the reader, and focuses the selected entry
-- The desktop list independently scrolls and automatically appends subsequent
-  pages; read entries are muted instead of removed, while the active highlight
-  follows the selected entry
+- The desktop list initially renders only enough entries to fill its viewport
+  plus one row; user scrolling reveals another viewport-sized batch, and only
+  fetches the next Miniflux page after the current DOM batch is exhausted
+- Read entries are muted instead of removed, while the active highlight follows
+  the selected entry
 - Article content uses the browser document scrollbar instead of a nested
   reader scrollbar
 - `J` / `K` select the next / previous visible entry; reaching the loaded
   boundary automatically fetches the next list page
+- `M` toggles read state, `S` toggles starred state, `B` collapses the list,
+  and `/` opens search
+- The split reader keeps the article title in the document flow, centered at a
+  compact 21px rather than duplicating it in the toolbar
 
 ### Reading mode (article body)
 
-- 16/17-px reading scale with 1.75/1.8 line-height
+- 17px / 1.72 split-reader scale, with the existing larger mobile scale retained
 - 2-em first-line indent on top-level paragraphs (CJK convention), suppressed inside lists/blockquotes/cells
 - `text-align: justify` with `inter-ideograph` for Chinese reading
 - Headings normalized to four sizes (20 / 18 / 16 / 15) regardless of source markup
@@ -145,7 +153,7 @@ Light/dark resolution priority:
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
 | 5 | `batch mark-read API` | posts an explicit set of entry IDs to `entry/status read`; used by the desktop toolbar action |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, loads entries beside the 360px list, toggles list visibility, and offers an explicit toolbar button to mark unread entries above the selection as read, then filters the list to unread entries |
+| 7 | `desktop split pane` | at ≥1024px, adds compact progressive list rendering, on-demand search and filters, keyboard actions, split navigation, and the explicit mark-above-read action |
 
 ## License
 

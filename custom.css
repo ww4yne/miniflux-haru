@@ -607,6 +607,11 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   display: none !important;
 }
 
+.mf-list-search-item,
+.mf-list-search-panel {
+  display: none !important;
+}
+
 @media (min-width: 1024px) {
   body.mf-split-active {
     width: min(1128px, 100vw) !important;
@@ -832,5 +837,144 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   #mf-split-reader .entry {
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  /* Compact refinement: keep controls available without adding a permanent row. */
+  body.mf-split-active > .header {
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  body.mf-split-active article.entry-item {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  body.mf-split-active article.entry-item .item-title a {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+  }
+
+  #mf-split-title {
+    min-height: 36px !important;
+  }
+
+  #mf-split-reader .mf-split-reader-inner {
+    padding-top: 22px !important;
+  }
+
+  #mf-split-reader .entry-header {
+    justify-content: center !important;
+    margin-bottom: 14px !important;
+  }
+
+  #mf-split-reader .entry-header h1 {
+    margin-bottom: 5px !important;
+    text-align: center !important;
+  }
+
+  #mf-split-reader .entry-header h1,
+  #mf-split-reader .entry-header h1 a {
+    font-size: 21px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.35 !important;
+  }
+
+  #mf-split-reader .entry-header .entry-actions,
+  #mf-split-reader .entry-header .entry-meta {
+    margin-left: 0 !important;
+  }
+
+  #mf-split-reader .entry-content {
+    font-size: 17px !important;
+    line-height: 1.72 !important;
+  }
+
+  body.mf-split-active article.entry-item.mf-list-filter-hidden {
+    display: none !important;
+  }
+
+  body.mf-split-active article.entry-item.mf-list-progressive-hidden {
+    display: none !important;
+  }
+
+  #header-menu .mf-list-search-button svg {
+    width: 16px !important;
+    height: 16px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.8 !important;
+    stroke-linecap: round !important;
+  }
+
+  #header-menu .mf-list-search-item {
+    display: list-item !important;
+  }
+
+  .mf-list-search-panel {
+    position: fixed !important;
+    z-index: 20 !important;
+    top: var(--mf-split-header-height, 40px) !important;
+    left: max(12px, calc(50% - 552px)) !important;
+    display: none !important;
+    width: 336px !important;
+    padding: 9px !important;
+    border: 1px solid var(--bg4) !important;
+    border-radius: 8px !important;
+    background: var(--bg2) !important;
+    box-shadow: 0 12px 32px rgba(42, 37, 32, 0.16) !important;
+  }
+
+  .mf-list-search-panel.mf-list-search-open {
+    display: block !important;
+  }
+
+  .mf-list-search-input {
+    width: 100% !important;
+    height: 34px !important;
+    padding: 0 10px !important;
+    border: 1px solid var(--bg4) !important;
+    border-radius: 6px !important;
+    outline: 0 !important;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    font: inherit !important;
+    font-size: 12px !important;
+  }
+
+  .mf-list-search-input:focus {
+    border-color: var(--accent) !important;
+  }
+
+  .mf-list-filter-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    margin-top: 7px !important;
+  }
+
+  .mf-list-filter {
+    min-height: 26px !important;
+    padding: 0 8px !important;
+    border: 0 !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    color: var(--text2) !important;
+    font: inherit !important;
+    font-size: 11px !important;
+    cursor: pointer !important;
+  }
+
+  .mf-list-filter[aria-pressed="true"],
+  .mf-list-filter:hover {
+    background: var(--accent-dim) !important;
+    color: var(--accent) !important;
+  }
+
+  .mf-list-filter-status {
+    margin-left: auto !important;
+    color: var(--text3) !important;
+    font-size: 10px !important;
   }
 }
