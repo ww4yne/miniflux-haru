@@ -224,7 +224,7 @@ ready(() => {
   let request;
   let selectedArticle;
   const htmlPolicy = globalThis.trustedTypes
-    ? trustedTypes.createPolicy("miniflux-haru-html", { createHTML: html => html })
+    ? trustedTypes.createPolicy("html", { createHTML: html => html })
     : { createHTML: html => html };
 
   const searchButton = Object.assign(document.createElement("button"), {
