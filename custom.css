@@ -607,10 +607,14 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   display: none !important;
 }
 
-.mf-list-search-item,
+.mf-list-refresh-item,
 .mf-list-search-panel,
 .mf-split-list-status {
   display: none !important;
+}
+
+@keyframes mf-list-refresh-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (min-width: 1024px) {
@@ -653,11 +657,18 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   body.mf-split-active > main {
     grid-column: 1 !important;
     grid-row: 2 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
     min-width: 0 !important;
     position: sticky !important;
     top: var(--mf-split-header-height, 52px) !important;
     align-self: start !important;
     height: calc(100vh - var(--mf-split-header-height, 52px)) !important;
+    overflow: hidden !important;
+  }
+
+  body.mf-split-active > main > .items {
+    min-height: 0 !important;
     overflow-y: auto !important;
     scrollbar-gutter: stable !important;
   }
@@ -768,15 +779,14 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   .mf-split-list-status {
-    position: sticky !important;
     z-index: 2 !important;
-    bottom: 0 !important;
     display: flex !important;
-    min-height: 42px !important;
+    min-height: 36px !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 5px 14px !important;
-    background: linear-gradient(transparent, var(--bg) 32%) !important;
+    padding: 0 !important;
+    border-top: 1px solid var(--bg3) !important;
+    background: var(--bg) !important;
   }
 
   .mf-split-list-status.mf-split-list-status-hidden {
@@ -784,22 +794,23 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   .mf-split-load-more {
-    min-width: 128px !important;
-    height: 30px !important;
-    padding: 0 14px !important;
-    border: 1px solid var(--accent-bd) !important;
-    border-radius: 9px !important;
-    background: var(--bg2) !important;
-    color: var(--accent) !important;
+    width: 100% !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--text2) !important;
     font-size: 12px !important;
-    line-height: 28px !important;
+    line-height: 36px !important;
     cursor: pointer !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: none !important;
   }
 
   .mf-split-load-more:hover,
   .mf-split-load-more:focus-visible {
-    background: var(--accent-dim) !important;
+    background: var(--bg3) !important;
+    color: var(--accent) !important;
   }
 
   .mf-split-load-more:disabled {
@@ -919,6 +930,11 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
 
   body.mf-split-active article.entry-item.mf-split-current {
     box-shadow: inset 2px 0 var(--accent) !important;
+  }
+
+  body.mf-split-active article.entry-item.mf-list-cursor:not(.mf-split-current) {
+    background: var(--accent-dim) !important;
+    box-shadow: inset 0 0 0 1px var(--accent-bd) !important;
   }
 
   #mf-split-title {
@@ -1051,7 +1067,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     display: none !important;
   }
 
-  #header-menu .mf-list-search-button svg {
+  #header-menu .mf-list-refresh-button svg {
     width: 16px !important;
     height: 16px !important;
     fill: none !important;
@@ -1060,8 +1076,12 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     stroke-linecap: round !important;
   }
 
-  #header-menu .mf-list-search-item {
+  #header-menu .mf-list-refresh-item {
     display: list-item !important;
+  }
+
+  #header-menu .mf-list-refresh-button.mf-list-refreshing svg {
+    animation: mf-list-refresh-spin 0.7s linear infinite !important;
   }
 
   .mf-list-search-panel {

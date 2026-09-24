@@ -217,32 +217,36 @@ ready(() => {
 
   let request;
   let selectedArticle;
+  let cursorArticle;
   const htmlPolicy = globalThis.trustedTypes
     ? trustedTypes.createPolicy("html", { createHTML: html => html })
     : { createHTML: html => html };
 
-  const searchButton = Object.assign(document.createElement("button"), {
-    className: "mf-list-search-button",
+  const refreshButton = Object.assign(document.createElement("button"), {
+    className: "mf-list-refresh-button",
     type: "button",
   });
-  searchButton.setAttribute("aria-label", "搜索和筛选");
-  searchButton.setAttribute("title", "搜索和筛选 (/)");
-  const searchIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  searchIcon.setAttribute("viewBox", "0 0 24 24");
-  searchIcon.setAttribute("aria-hidden", "true");
-  const searchCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  searchCircle.setAttribute("cx", "11");
-  searchCircle.setAttribute("cy", "11");
-  searchCircle.setAttribute("r", "7");
-  const searchHandle = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  searchHandle.setAttribute("d", "m16 16 5 5");
-  searchIcon.append(searchCircle, searchHandle);
-  searchButton.appendChild(searchIcon);
-  const searchItem = Object.assign(document.createElement("li"), {
-    className: "mf-list-search-item",
+  refreshButton.setAttribute("aria-label", "刷新未读列表");
+  refreshButton.setAttribute("title", "刷新未读列表");
+  const refreshIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  refreshIcon.setAttribute("viewBox", "0 0 24 24");
+  refreshIcon.setAttribute("aria-hidden", "true");
+  for (const pathData of [
+    "M20 7v5h-5",
+    "M4 17v-5h5",
+    "M6.1 9A7 7 0 0 1 18 6l2 2",
+    "M17.9 15A7 7 0 0 1 6 18l-2-2",
+  ]) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathData);
+    refreshIcon.appendChild(path);
+  }
+  refreshButton.appendChild(refreshIcon);
+  const refreshItem = Object.assign(document.createElement("li"), {
+    className: "mf-list-refresh-item",
   });
-  searchItem.appendChild(searchButton);
-  headerMenu.prepend(searchItem);
+  refreshItem.appendChild(refreshButton);
+  headerMenu.prepend(refreshItem);
 
   const searchPanel = Object.assign(document.createElement("section"), {
     className: "mf-list-search-panel",
@@ -297,25 +301,16 @@ ready(() => {
   };
   const openSearch = () => {
     searchPanel.classList.add("mf-list-search-open");
-    searchButton.setAttribute("aria-expanded", "true");
     searchInput.focus();
   };
   const closeSearch = () => {
     searchPanel.classList.remove("mf-list-search-open");
-    searchButton.setAttribute("aria-expanded", "false");
-    searchButton.focus();
+    cursorArticle?.focus({ preventScroll: true });
   };
-  searchButton.setAttribute("aria-expanded", "false");
-  searchButton.addEventListener("click", () => {
-    if (searchPanel.classList.contains("mf-list-search-open")) closeSearch();
-    else openSearch();
-  });
   document.addEventListener("click", event => {
     if (!searchPanel.classList.contains("mf-list-search-open") ||
-        searchPanel.contains(event.target) ||
-        searchButton.contains(event.target)) return;
+        searchPanel.contains(event.target)) return;
     searchPanel.classList.remove("mf-list-search-open");
-    searchButton.setAttribute("aria-expanded", "false");
   });
   searchInput.addEventListener("input", applyListFilter);
   filterRow.addEventListener("click", event => {
@@ -748,6 +743,7 @@ ready(() => {
         article.classList.add("mf-split-current");
         article.setAttribute("aria-selected", "true");
         selectedArticle = article;
+        setCursor(article);
         renderMarkAbove();
       } else {
         document.querySelectorAll("article.entry-item.mf-split-current")
@@ -820,6 +816,18 @@ ready(() => {
   decorateListEntries(list);
   desktop.addEventListener("change", configureTitleLinks);
 
+  const visibleEntries = () =>
+    [...list.querySelectorAll("article.entry-item")]
+      .filter(article => article.getClientRects().length > 0);
+  const setCursor = (article, focus = false) => {
+    if (!article) return;
+    cursorArticle?.classList.remove("mf-list-cursor");
+    cursorArticle = article;
+    cursorArticle.classList.add("mf-list-cursor");
+    cursorArticle.scrollIntoView({ block: "nearest" });
+    if (focus) cursorArticle.focus({ preventScroll: true });
+  };
+
   list.addEventListener("click", event => {
     const article = event.target.closest("article.entry-item");
     if (!article || !desktop.matches) return;
@@ -841,7 +849,7 @@ ready(() => {
     window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
   }, true);
   list.addEventListener("keydown", event => {
-    if (!desktop.matches || (event.key !== "Enter" && event.key !== " ")) return;
+    if (!desktop.matches || event.key !== "Enter") return;
     const article = event.target.closest("article.entry-item");
     if (!article) return;
     event.preventDefault();
@@ -866,7 +874,7 @@ ready(() => {
   const loadMoreButton = Object.assign(document.createElement("button"), {
     className: "mf-split-load-more",
     type: "button",
-    textContent: "加载更多",
+    textContent: "↓  加载更多未读文章",
   });
   listStatus.appendChild(loadMoreButton);
   listMain.appendChild(listStatus);
@@ -874,7 +882,7 @@ ready(() => {
     listStatus.classList.toggle("mf-split-list-status-hidden", !nextPage);
     listStatus.classList.remove("mf-split-list-status-error");
     loadMoreButton.disabled = false;
-    loadMoreButton.textContent = "加载更多";
+    loadMoreButton.textContent = "↓  加载更多未读文章";
     loadMoreButton.setAttribute("aria-label", "加载更多文章");
   };
   showLoadMore();
@@ -926,6 +934,54 @@ ready(() => {
   };
   loadMoreButton.addEventListener("click", loadNextPage);
 
+  let refreshingUnread = false;
+  const refreshUnreadList = async () => {
+    if (refreshingUnread || !desktop.matches) return;
+    refreshingUnread = true;
+    refreshButton.disabled = true;
+    refreshButton.classList.add("mf-list-refreshing");
+    const selectedId = selectedArticle?.dataset.id;
+    try {
+      const response = await fetch("/unread", {
+        credentials: "same-origin",
+        headers: { "X-Requested-With": "Miniflux-Split-List" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const page = new DOMParser().parseFromString(
+        htmlPolicy.createHTML(await response.text()),
+        "text/html",
+      );
+      const sourceList = page.querySelector(".items");
+      if (!sourceList) throw new Error("Unread list markup not found");
+      const entries = [...sourceList.querySelectorAll("article.entry-item")]
+        .map(node => document.importNode(node, true));
+      list.replaceChildren(...entries);
+      decorateListEntries(list);
+      selectedArticle = selectedId
+        ? list.querySelector(`article.entry-item[data-id="${selectedId}"]`)
+        : null;
+      if (selectedArticle) {
+        selectedArticle.classList.add("mf-split-current");
+        selectedArticle.setAttribute("aria-selected", "true");
+      }
+      cursorArticle = null;
+      const cursorTarget = selectedArticle || visibleEntries()[0];
+      if (cursorTarget) setCursor(cursorTarget);
+      nextPage = nextPageUrl(page);
+      showLoadMore();
+      renderMarkAbove();
+      showActionStatus(entries.length ? `已刷新 ${entries.length} 条未读` : "没有未读文章");
+    } catch (error) {
+      showActionStatus(`刷新未读失败：${error.message}`, true);
+      console.error("Miniflux split list could not refresh unread entries:", error);
+    } finally {
+      refreshingUnread = false;
+      refreshButton.disabled = false;
+      refreshButton.classList.remove("mf-list-refreshing");
+    }
+  };
+  refreshButton.addEventListener("click", refreshUnreadList);
+
   document.addEventListener("keydown", async event => {
     if (!desktop.matches || event.defaultPrevented) return;
     if (event.target === searchInput) {
@@ -936,7 +992,7 @@ ready(() => {
       return;
     }
     if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
-        event.target.closest("input, textarea, select, [contenteditable]")) return;
+        event.target.closest("input, textarea, select, button, a, [contenteditable]")) return;
     const key = event.key.toLowerCase();
     if (key === "/") {
       event.preventDefault();
@@ -960,25 +1016,35 @@ ready(() => {
       activateEntryAction(key);
       return;
     }
-    if (key !== "j" && key !== "k") return;
+    if (!["j", "k", "n", "p", " "].includes(key)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
 
-    const direction = key === "j" ? 1 : -1;
-    const entries = [...list.querySelectorAll("article.entry-item")]
-      .filter(article => article.getClientRects().length > 0);
-    const index = selectedArticle ? entries.indexOf(selectedArticle) : (direction > 0 ? -1 : 0);
-    const target = entries[index + direction];
-    if (!target && direction > 0 && nextPage) {
-      loadMoreButton.focus({ preventScroll: true });
-      loadMoreButton.scrollIntoView({ block: "nearest" });
+    if (key === " ") {
+      if (!cursorArticle?.getClientRects().length) return;
+      const title = cursorArticle.querySelector(".item-title a");
+      await load(title.dataset.mfSplitHref, cursorArticle);
       return;
     }
+    const direction = key === "j" || key === "n" ? 1 : -1;
+    let entries = visibleEntries();
+    const anchor = entries.includes(cursorArticle)
+      ? cursorArticle
+      : entries.includes(selectedArticle) ? selectedArticle : null;
+    const index = anchor
+      ? entries.indexOf(anchor)
+      : direction > 0 ? -1 : entries.length;
+    let target = entries[index + direction];
+    if (!target && direction > 0 && key === "j" && nextPage) {
+      const added = await loadNextPage();
+      entries = visibleEntries();
+      target = added.find(article => entries.includes(article));
+    }
     if (!target) return;
+    setCursor(target, true);
+    if (key === "n" || key === "p") return;
     const title = target.querySelector(".item-title a");
     await load(title.dataset.mfSplitHref, target);
-    target.scrollIntoView({ block: "nearest" });
-    target.focus({ preventScroll: true });
   }, true);
 
   reader.addEventListener("click", event => {

@@ -24,8 +24,8 @@ Place your own here. Suggested shots:
 - Tracks Miniflux's actual theme (not just OS preference) via a runtime background-color probe
 - Compact header: logo left, SVG-only icon menu right, single row on every viewport
 - Compact entry list: first-letter source chip replacing favicons, single-line ellipsis titles, 3-px accent unread bar on the left
-- On-demand search and All / Unread / Starred filters; the controls stay hidden
-  until the toolbar button or `/` shortcut is used
+- On-demand search and All / Unread / Starred filters remain available through
+  `/`; the list toolbar button refreshes the first page of unread entries
 - Native `mark page as read` button relocated into the bottom pagination row (saves a footer row)
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
@@ -36,15 +36,17 @@ Place your own here. Suggested shots:
 - The bottom reader pagination retains a centered `back to list` link that
   appears only while the sidebar is collapsed, then expands the sidebar,
   clears the reader, and focuses the selected entry
-- The desktop list renders every entry already returned by Miniflux as a
-  standard independently scrollable list; a sticky `加载更多` button explicitly
-  fetches the next page without hiding entries behind scroll thresholds
+- The desktop list renders every entry already returned by Miniflux in its own
+  scroll region; a fixed, square-edged bottom action explicitly fetches the
+  next unread page and disappears completely after the final page
 - Read entries are muted instead of removed, while the active highlight follows
   the selected entry
 - Article content uses the browser document scrollbar instead of a nested
   reader scrollbar
-- `J` / `K` select the next / previous visible entry; at the loaded boundary,
-  `J` focuses the explicit load-more button
+- `J` / `K` move to and open the next / previous visible entry; `J`
+  automatically fetches the next unread page when it reaches a loaded boundary
+- `N` / `P` move the independent list cursor without loading an article, and
+  `Space` opens the cursor entry
 - `M` toggles read state, `S` toggles starred state, `B` collapses the list,
   and `/` opens search
 - The split reader keeps the article title in the document flow, centered at a
@@ -154,7 +156,7 @@ Light/dark resolution priority:
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
 | 5 | `batch mark-read API` | posts an explicit set of entry IDs to `entry/status read`; used by the desktop toolbar action |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, adds natural list scrolling, explicit next-page loading, on-demand search and filters, keyboard actions, split navigation, and the explicit mark-above-read action |
+| 7 | `desktop split pane` | at ≥1024px, adds unread refresh, fixed next-page loading, an independent keyboard cursor, on-demand search and filters, split navigation, and the explicit mark-above-read action |
 
 ## License
 
