@@ -1,19 +1,19 @@
 /* Miniflux Haru — focused reading interface for Miniflux 2.3/2.4 */
 
 :root {
-  --bg: #f4f1e9;
-  --panel: #faf8f2;
-  --surface: #fffdf8;
-  --surface-raised: #ffffff;
-  --line: #e4dfd5;
-  --line-strong: #d3cdc1;
-  --text: #211f1b;
-  --text-muted: #6e6961;
-  --text-faint: #969087;
-  --accent: #a65243;
-  --accent-hover: #8f4437;
-  --accent-soft: rgba(166, 82, 67, 0.1);
-  --accent-border: rgba(166, 82, 67, 0.28);
+  --bg: #F3F0E8;
+  --panel: #F3F0E8;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --line: #EAE7DF;
+  --line-strong: #DDD9D0;
+  --text: #1A1915;
+  --text-muted: #6B6560;
+  --text-faint: #9C958C;
+  --accent: #B0584A;
+  --accent-hover: #9C4D40;
+  --accent-soft: rgba(176, 88, 74, 0.10);
+  --accent-border: rgba(176, 88, 74, 0.30);
   --danger: #b42318;
   --shadow: 0 12px 36px rgba(45, 38, 28, 0.1);
   --radius-sm: 7px;
@@ -27,7 +27,7 @@
 
   /* Compatibility aliases for older Haru snippets. */
   --bg2: var(--surface);
-  --bg3: #ebe7de;
+  --bg3: #EAE7DF;
   --bg4: var(--line-strong);
   --text2: var(--text-muted);
   --text3: var(--text-faint);
@@ -43,42 +43,42 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not(.mf-light) {
-    --bg: #1f1d1a;
-    --panel: #25221e;
-    --surface: #2c2823;
-    --surface-raised: #312c27;
-    --line: #3d3832;
-    --line-strong: #514a42;
-    --text: #eeeae2;
-    --text-muted: #b4aea5;
-    --text-faint: #817a72;
-    --accent: #d27a69;
-    --accent-hover: #e38c7b;
-    --accent-soft: rgba(210, 122, 105, 0.13);
-    --accent-border: rgba(210, 122, 105, 0.3);
+    --bg: #2A2520;
+    --panel: #2A2520;
+    --surface: #352F29;
+    --surface-raised: #352F29;
+    --line: #3D362F;
+    --line-strong: #4A433B;
+    --text: #ECE8E1;
+    --text-muted: #A39E96;
+    --text-faint: #706B63;
+    --accent: #C46B5B;
+    --accent-hover: #D87C6D;
+    --accent-soft: rgba(196, 107, 91, 0.12);
+    --accent-border: rgba(196, 107, 91, 0.30);
     --danger: #ff938a;
     --shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
-    --bg3: #35302b;
+    --bg3: #3D362F;
   }
 }
 
 html.mf-dark {
-  --bg: #1f1d1a;
-  --panel: #25221e;
-  --surface: #2c2823;
-  --surface-raised: #312c27;
-  --line: #3d3832;
-  --line-strong: #514a42;
-  --text: #eeeae2;
-  --text-muted: #b4aea5;
-  --text-faint: #817a72;
-  --accent: #d27a69;
-  --accent-hover: #e38c7b;
-  --accent-soft: rgba(210, 122, 105, 0.13);
-  --accent-border: rgba(210, 122, 105, 0.3);
+  --bg: #2A2520;
+  --panel: #2A2520;
+  --surface: #352F29;
+  --surface-raised: #352F29;
+  --line: #3D362F;
+  --line-strong: #4A433B;
+  --text: #ECE8E1;
+  --text-muted: #A39E96;
+  --text-faint: #706B63;
+  --accent: #C46B5B;
+  --accent-hover: #D87C6D;
+  --accent-soft: rgba(196, 107, 91, 0.12);
+  --accent-border: rgba(196, 107, 91, 0.30);
   --danger: #ff938a;
   --shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
-  --bg3: #35302b;
+  --bg3: #3D362F;
 }
 
 * {
