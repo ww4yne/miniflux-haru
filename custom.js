@@ -861,49 +861,31 @@ ready(() => {
   let loadingNextPage = false;
   const listStatus = Object.assign(document.createElement("div"), {
     className: "mf-split-list-status",
-    textContent: nextPage ? "继续滚动加载" : "已加载全部",
   });
+  listStatus.setAttribute("aria-live", "polite");
+  const loadMoreButton = Object.assign(document.createElement("button"), {
+    className: "mf-split-load-more",
+    type: "button",
+    textContent: "加载更多",
+  });
+  listStatus.appendChild(loadMoreButton);
   listMain.appendChild(listStatus);
-  let progressiveReady = false;
-  let progressiveBusy = false;
-  const listBatchSize = () => {
-    const sample = list.querySelector("article.entry-item:not(.mf-list-progressive-hidden)");
-    const rowHeight = sample?.getBoundingClientRect().height || 30;
-    return Math.max(8, Math.ceil(listMain.clientHeight / rowHeight) + 1);
+  const showLoadMore = () => {
+    listStatus.classList.toggle("mf-split-list-status-hidden", !nextPage);
+    listStatus.classList.remove("mf-split-list-status-error");
+    loadMoreButton.disabled = false;
+    loadMoreButton.textContent = "加载更多";
+    loadMoreButton.setAttribute("aria-label", "加载更多文章");
   };
-  const progressivePending = () =>
-    [...list.querySelectorAll("article.entry-item.mf-list-progressive-hidden")]
-      .filter(article => !article.classList.contains("mf-list-filter-hidden"));
-  const updateProgressiveStatus = () => {
-    listStatus.textContent = progressivePending().length || nextPage
-      ? "继续滚动加载"
-      : "已加载全部";
-  };
-  const revealProgressiveBatch = () => {
-    const pending = progressivePending();
-    const batch = pending.slice(0, listBatchSize());
-    for (const article of batch) article.classList.remove("mf-list-progressive-hidden");
-    updateProgressiveStatus();
-    return batch.length;
-  };
-  const initializeProgressiveList = () => {
-    const entries = [...list.querySelectorAll("article.entry-item")];
-    const initialCount = listBatchSize();
-    entries.forEach((article, index) => {
-      article.classList.toggle("mf-list-progressive-hidden", index >= initialCount);
-    });
-    progressiveReady = true;
-    updateProgressiveStatus();
-  };
-  initializeProgressiveList();
+  showLoadMore();
 
   const loadNextPage = async () => {
     if (!nextPage || loadingNextPage || !desktop.matches) return [];
     loadingNextPage = true;
     const url = nextPage;
-    listStatus.removeAttribute("role");
-    listStatus.removeAttribute("tabindex");
-    listStatus.textContent = "正在加载更多…";
+    listStatus.classList.remove("mf-split-list-status-error");
+    loadMoreButton.disabled = true;
+    loadMoreButton.textContent = "正在加载…";
     try {
       const response = await fetch(url, {
         credentials: "same-origin",
@@ -923,62 +905,26 @@ ready(() => {
         .filter(node => !knownIds.has(node.dataset.id))
         .map(node => document.importNode(node, true));
       if (!entries.length) throw new Error("Next page contained no new entries");
-      if (progressiveReady) {
-        for (const article of entries) article.classList.add("mf-list-progressive-hidden");
-      }
       list.append(...entries);
       decorateListEntries(list);
       nextPage = nextPageUrl(page);
-      updateProgressiveStatus();
+      showLoadMore();
       return entries;
     } catch (error) {
-      listStatus.textContent = `加载更多失败：${error.message}（点击重试）`;
-      listStatus.setAttribute("role", "button");
-      listStatus.tabIndex = 0;
+      listStatus.classList.add("mf-split-list-status-error");
+      loadMoreButton.disabled = false;
+      loadMoreButton.textContent = "重试加载";
+      loadMoreButton.setAttribute(
+        "aria-label",
+        `加载更多失败：${error.message}，点击重试`,
+      );
       console.error("Miniflux split list could not load the next page:", error);
       return [];
     } finally {
       loadingNextPage = false;
     }
   };
-  const advanceProgressiveList = async () => {
-    if (progressiveBusy) return;
-    progressiveBusy = true;
-    try {
-      if (revealProgressiveBatch()) return;
-      if (!nextPage) {
-        listStatus.textContent = "已加载全部";
-        return;
-      }
-      const added = await loadNextPage();
-      if (added.length) revealProgressiveBatch();
-    } finally {
-      progressiveBusy = false;
-    }
-  };
-  const ensureScrollableList = async () => {
-    if (!desktop.matches ||
-        listMain.scrollHeight > listMain.clientHeight + 1 ||
-        (!progressivePending().length && !nextPage)) return;
-    await advanceProgressiveList();
-    requestAnimationFrame(ensureScrollableList);
-  };
-  requestAnimationFrame(ensureScrollableList);
-  listStatus.addEventListener("click", () => {
-    if (listStatus.getAttribute("role") === "button") advanceProgressiveList();
-  });
-  listStatus.addEventListener("keydown", event => {
-    if (listStatus.getAttribute("role") === "button" &&
-        (event.key === "Enter" || event.key === " ")) {
-      event.preventDefault();
-      advanceProgressiveList();
-    }
-  });
-  listMain.addEventListener("scroll", event => {
-    if (!event.isTrusted) return;
-    const remaining = listMain.scrollHeight - listMain.scrollTop - listMain.clientHeight;
-    if (remaining <= 48) advanceProgressiveList();
-  }, { passive: true });
+  loadMoreButton.addEventListener("click", loadNextPage);
 
   document.addEventListener("keydown", async event => {
     if (!desktop.matches || event.defaultPrevented) return;
@@ -1019,17 +965,14 @@ ready(() => {
     event.stopImmediatePropagation();
 
     const direction = key === "j" ? 1 : -1;
-    let entries = [...list.querySelectorAll("article.entry-item")]
+    const entries = [...list.querySelectorAll("article.entry-item")]
       .filter(article => article.getClientRects().length > 0);
-    let index = selectedArticle ? entries.indexOf(selectedArticle) : (direction > 0 ? -1 : 0);
-    let target = entries[index + direction];
-    if (!target && direction > 0 &&
-        (progressivePending().length || nextPage)) {
-      await advanceProgressiveList();
-      entries = [...list.querySelectorAll("article.entry-item")]
-        .filter(article => article.getClientRects().length > 0);
-      index = selectedArticle ? entries.indexOf(selectedArticle) : -1;
-      target = entries[index + 1];
+    const index = selectedArticle ? entries.indexOf(selectedArticle) : (direction > 0 ? -1 : 0);
+    const target = entries[index + direction];
+    if (!target && direction > 0 && nextPage) {
+      loadMoreButton.focus({ preventScroll: true });
+      loadMoreButton.scrollIntoView({ block: "nearest" });
+      return;
     }
     if (!target) return;
     const title = target.querySelector(".item-title a");
