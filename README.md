@@ -25,7 +25,9 @@ Place your own here. Suggested shots:
 - Compact header: logo left, SVG-only icon menu right, single row on every viewport
 - Compact entry list: first-letter source chip replacing favicons, single-line ellipsis titles, 3-px accent unread bar on the left
 - On-demand search and All / Unread / Starred filters remain available through
-  `/`; the list toolbar button refreshes the first page of unread entries
+  `/`; the concentric-ring list action marks unread entries above the current
+  selection as read, refreshes unread entries, and buffers additional pages,
+  appending only entries that fit in the list viewport as it resizes
 - Native `mark page as read` button relocated into the bottom pagination row (saves a footer row)
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
@@ -36,9 +38,10 @@ Place your own here. Suggested shots:
 - The bottom reader pagination retains a centered `back to list` link that
   appears only while the sidebar is collapsed, then expands the sidebar,
   clears the reader, and focuses the selected entry
-- The desktop list renders every entry already returned by Miniflux in its own
-  scroll region; a fixed, square-edged bottom action explicitly fetches the
-  next unread page and disappears completely after the final page
+- The desktop list renders entries in its own scroll region without a bottom
+  load-more control; the combined list action fills short refreshed lists one
+  entry at a time from buffered unread pages and returns excess tail entries to
+  the buffer instead of introducing a scrollbar
 - Read entries are muted instead of removed, while the active highlight follows
   the selected entry
 - Article content uses the browser document scrollbar instead of a nested
@@ -87,8 +90,8 @@ To keep emoji: delete the unicode-emoji walker block in module 6 of `custom.js` 
 4. Save. Hard-refresh once.
 
 Both files are independent. CSS works on its own. JS adds the relocations,
-source chips, theme probe, explicit mark-above action, reading-mode DOM cleanup,
-and desktop split-pane loading.
+source chips, theme probe, the combined mark-above and refresh action,
+reading-mode DOM cleanup, and desktop split-pane loading.
 
 ### Database-side install (optional)
 
@@ -156,7 +159,7 @@ Light/dark resolution priority:
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
 | 5 | `batch mark-read API` | posts an explicit set of entry IDs to `entry/status read`; used by the desktop toolbar action |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, adds unread refresh, fixed next-page loading, an independent keyboard cursor, on-demand search and filters, split navigation, and the explicit mark-above-read action |
+| 7 | `desktop split pane` | at ≥1024px, adds a combined mark-above and unread-refresh action that fills the list viewport, boundary-driven next-page loading, an independent keyboard cursor, on-demand search and filters, and split navigation |
 
 ## License
 

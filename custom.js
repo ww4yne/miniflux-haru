@@ -198,7 +198,6 @@ ready(() => {
   const markAbove = Object.assign(document.createElement("button"), {
     className: "mf-mark-above",
     type: "button",
-    disabled: true,
   });
   const markAboveItem = Object.assign(document.createElement("li"), {
     className: "mf-mark-above-item",
@@ -221,32 +220,6 @@ ready(() => {
   const htmlPolicy = globalThis.trustedTypes
     ? trustedTypes.createPolicy("html", { createHTML: html => html })
     : { createHTML: html => html };
-
-  const refreshButton = Object.assign(document.createElement("button"), {
-    className: "mf-list-refresh-button",
-    type: "button",
-  });
-  refreshButton.setAttribute("aria-label", "刷新未读列表");
-  refreshButton.setAttribute("title", "刷新未读列表");
-  const refreshIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  refreshIcon.setAttribute("viewBox", "0 0 24 24");
-  refreshIcon.setAttribute("aria-hidden", "true");
-  for (const pathData of [
-    "M20 7v5h-5",
-    "M4 17v-5h5",
-    "M6.1 9A7 7 0 0 1 18 6l2 2",
-    "M17.9 15A7 7 0 0 1 6 18l-2-2",
-  ]) {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", pathData);
-    refreshIcon.appendChild(path);
-  }
-  refreshButton.appendChild(refreshIcon);
-  const refreshItem = Object.assign(document.createElement("li"), {
-    className: "mf-list-refresh-item",
-  });
-  refreshItem.appendChild(refreshButton);
-  headerMenu.prepend(refreshItem);
 
   const searchPanel = Object.assign(document.createElement("section"), {
     className: "mf-list-search-panel",
@@ -431,9 +404,8 @@ ready(() => {
   const renderMarkAbove = () => {
     const count = unreadAbove().length;
     const label = count
-      ? `将当前条目上方 ${count} 条未读标记为已读`
-      : "当前条目上方没有未读条目";
-    markAbove.disabled = count === 0;
+      ? `将当前条目上方 ${count} 条未读标记为已读并刷新列表`
+      : "刷新未读列表";
     markAbove.setAttribute("aria-label", label);
     markAbove.setAttribute("title", label);
   };
@@ -563,35 +535,19 @@ ready(() => {
   actionStatus.setAttribute("aria-live", "polite");
   listMain.prepend(actionStatus);
   let actionStatusTimer;
+  let syncListViewport = () => {};
   const showActionStatus = (text, isError = false) => {
     clearTimeout(actionStatusTimer);
     actionStatus.textContent = text;
     actionStatus.classList.toggle("mf-split-action-error", isError);
+    requestAnimationFrame(syncListViewport);
     if (!isError) {
       actionStatusTimer = setTimeout(() => {
         actionStatus.textContent = "";
+        requestAnimationFrame(syncListViewport);
       }, 3000);
     }
   };
-
-  markAbove.addEventListener("click", async () => {
-    const targets = unreadAbove();
-    if (!targets.length) return;
-    markAbove.disabled = true;
-    try {
-      await markEntriesRead(targets.map(article => +article.dataset.id));
-      for (const article of targets) {
-        article.classList.replace("item-status-unread", "item-status-read");
-      }
-      document.body.classList.add("mf-split-unread-only");
-      showActionStatus(`已将上方 ${targets.length} 条标记为已读；列表仅保留未读`);
-    } catch (error) {
-      showActionStatus(`标记已读失败：${error.message}`, true);
-      console.error("Miniflux could not mark entries above as read:", error);
-    } finally {
-      renderMarkAbove();
-    }
-  });
 
   const showMessage = (className, text, detail = "") => {
     titleHost.querySelector("h1")?.remove();
@@ -867,33 +823,12 @@ ready(() => {
   };
   let nextPage = nextPageUrl(document);
   let loadingNextPage = false;
-  const listStatus = Object.assign(document.createElement("div"), {
-    className: "mf-split-list-status",
-  });
-  listStatus.setAttribute("aria-live", "polite");
-  const loadMoreButton = Object.assign(document.createElement("button"), {
-    className: "mf-split-load-more",
-    type: "button",
-    textContent: "↓  加载更多未读文章",
-  });
-  listStatus.appendChild(loadMoreButton);
-  listMain.appendChild(listStatus);
-  const showLoadMore = () => {
-    listStatus.classList.toggle("mf-split-list-status-hidden", !nextPage);
-    listStatus.classList.remove("mf-split-list-status-error");
-    loadMoreButton.disabled = false;
-    loadMoreButton.textContent = "↓  加载更多未读文章";
-    loadMoreButton.setAttribute("aria-label", "加载更多文章");
-  };
-  showLoadMore();
+  let pendingEntries = [];
 
-  const loadNextPage = async () => {
+  const fetchNextPage = async () => {
     if (!nextPage || loadingNextPage || !desktop.matches) return [];
     loadingNextPage = true;
     const url = nextPage;
-    listStatus.classList.remove("mf-split-list-status-error");
-    loadMoreButton.disabled = true;
-    loadMoreButton.textContent = "正在加载…";
     try {
       const response = await fetch(url, {
         credentials: "same-origin",
@@ -907,39 +842,80 @@ ready(() => {
       const sourceList = page.querySelector(".items");
       if (!sourceList) throw new Error("Entry list markup not found");
       const knownIds = new Set(
-        [...list.querySelectorAll("article.entry-item[data-id]")].map(node => node.dataset.id),
+        [
+          ...list.querySelectorAll("article.entry-item[data-id]"),
+          ...pendingEntries,
+        ].map(node => node.dataset.id),
       );
       const entries = [...sourceList.querySelectorAll("article.entry-item")]
         .filter(node => !knownIds.has(node.dataset.id))
         .map(node => document.importNode(node, true));
       if (!entries.length) throw new Error("Next page contained no new entries");
-      list.append(...entries);
-      decorateListEntries(list);
       nextPage = nextPageUrl(page);
-      showLoadMore();
+      pendingEntries.push(...entries);
       return entries;
     } catch (error) {
-      listStatus.classList.add("mf-split-list-status-error");
-      loadMoreButton.disabled = false;
-      loadMoreButton.textContent = "重试加载";
-      loadMoreButton.setAttribute(
-        "aria-label",
-        `加载更多失败：${error.message}，点击重试`,
-      );
+      showActionStatus(`加载更多未读失败：${error.message}`, true);
       console.error("Miniflux split list could not load the next page:", error);
       return [];
     } finally {
       loadingNextPage = false;
     }
   };
-  loadMoreButton.addEventListener("click", loadNextPage);
+  const loadNextPage = async () => {
+    if (!pendingEntries.length) {
+      const entries = await fetchNextPage();
+      if (!entries.length) return [];
+    }
+    const entry = pendingEntries.shift();
+    list.appendChild(entry);
+    decorateListEntries(list);
+    return [entry];
+  };
 
   let refreshingUnread = false;
+  let manageListViewport = false;
+  const fillListViewport = async () => {
+    let addedCount = 0;
+    while (pendingEntries.length || nextPage) {
+      const entries = await loadNextPage();
+      if (!entries.length) break;
+      const entry = entries[0];
+      if (list.children.length > 1 && list.scrollHeight > list.clientHeight) {
+        list.removeChild(entry);
+        pendingEntries.unshift(entry);
+        break;
+      }
+      addedCount += entries.length;
+    }
+    return addedCount;
+  };
+  const trimListViewport = () => {
+    while (list.children.length > 1 && list.scrollHeight > list.clientHeight) {
+      const entry = list.lastElementChild;
+      if (entry === selectedArticle || entry === cursorArticle) break;
+      list.removeChild(entry);
+      if (list.scrollHeight < list.clientHeight) {
+        list.appendChild(entry);
+        break;
+      }
+      pendingEntries.unshift(entry);
+    }
+  };
+  const fitListViewport = async () => {
+    if (!manageListViewport || refreshingUnread || !desktop.matches) return;
+    trimListViewport();
+    await fillListViewport();
+  };
+  syncListViewport = fitListViewport;
+  let fitListTimer;
+  addEventListener("resize", () => {
+    clearTimeout(fitListTimer);
+    fitListTimer = setTimeout(fitListViewport, 120);
+  });
   const refreshUnreadList = async () => {
-    if (refreshingUnread || !desktop.matches) return;
+    if (refreshingUnread || !desktop.matches) return null;
     refreshingUnread = true;
-    refreshButton.disabled = true;
-    refreshButton.classList.add("mf-list-refreshing");
     const selectedId = selectedArticle?.dataset.id;
     try {
       const response = await fetch("/unread", {
@@ -955,8 +931,11 @@ ready(() => {
       if (!sourceList) throw new Error("Unread list markup not found");
       const entries = [...sourceList.querySelectorAll("article.entry-item")]
         .map(node => document.importNode(node, true));
-      list.replaceChildren(...entries);
-      decorateListEntries(list);
+      list.replaceChildren();
+      pendingEntries = entries;
+      nextPage = nextPageUrl(page);
+      manageListViewport = true;
+      const loadedCount = await fillListViewport();
       selectedArticle = selectedId
         ? list.querySelector(`article.entry-item[data-id="${selectedId}"]`)
         : null;
@@ -967,20 +946,39 @@ ready(() => {
       cursorArticle = null;
       const cursorTarget = selectedArticle || visibleEntries()[0];
       if (cursorTarget) setCursor(cursorTarget);
-      nextPage = nextPageUrl(page);
-      showLoadMore();
       renderMarkAbove();
-      showActionStatus(entries.length ? `已刷新 ${entries.length} 条未读` : "没有未读文章");
+      return loadedCount;
     } catch (error) {
-      showActionStatus(`刷新未读失败：${error.message}`, true);
       console.error("Miniflux split list could not refresh unread entries:", error);
+      throw error;
     } finally {
       refreshingUnread = false;
-      refreshButton.disabled = false;
-      refreshButton.classList.remove("mf-list-refreshing");
     }
   };
-  refreshButton.addEventListener("click", refreshUnreadList);
+  markAbove.addEventListener("click", async () => {
+    if (refreshingUnread || !desktop.matches) return;
+    const targets = unreadAbove();
+    markAbove.disabled = true;
+    markAbove.classList.add("mf-list-refreshing");
+    try {
+      if (targets.length) {
+        await markEntriesRead(targets.map(article => +article.dataset.id));
+      }
+      const loadedCount = await refreshUnreadList();
+      document.body.classList.add("mf-split-unread-only");
+      const markedText = targets.length ? `已将上方 ${targets.length} 条标记为已读；` : "";
+      showActionStatus(
+        loadedCount ? `${markedText}已加载 ${loadedCount} 条未读` : `${markedText}没有未读文章`,
+      );
+    } catch (error) {
+      showActionStatus(`更新未读列表失败：${error.message}`, true);
+      console.error("Miniflux could not update the unread list:", error);
+    } finally {
+      markAbove.disabled = false;
+      markAbove.classList.remove("mf-list-refreshing");
+      renderMarkAbove();
+    }
+  });
 
   document.addEventListener("keydown", async event => {
     if (!desktop.matches || event.defaultPrevented) return;
@@ -1035,7 +1033,8 @@ ready(() => {
       ? entries.indexOf(anchor)
       : direction > 0 ? -1 : entries.length;
     let target = entries[index + direction];
-    if (!target && direction > 0 && key === "j" && nextPage) {
+    if (!target && direction > 0 && key === "j" &&
+        (pendingEntries.length || nextPage)) {
       const added = await loadNextPage();
       entries = visibleEntries();
       target = added.find(article => entries.includes(article));
