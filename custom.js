@@ -545,20 +545,20 @@ ready(() => {
 
   const actionStatus = Object.assign(document.createElement("div"), {
     className: "mf-split-action-status",
+    hidden: true,
   });
   actionStatus.setAttribute("aria-live", "polite");
-  listMain.prepend(actionStatus);
+  document.body.append(actionStatus);
   let actionStatusTimer;
-  let syncListViewport = () => {};
   const showActionStatus = (text, isError = false) => {
     clearTimeout(actionStatusTimer);
     actionStatus.textContent = text;
+    actionStatus.hidden = false;
     actionStatus.classList.toggle("mf-split-action-error", isError);
-    requestAnimationFrame(syncListViewport);
     if (!isError) {
       actionStatusTimer = setTimeout(() => {
         actionStatus.textContent = "";
-        requestAnimationFrame(syncListViewport);
+        actionStatus.hidden = true;
       }, 3000);
     }
   };
@@ -836,167 +836,23 @@ ready(() => {
     load(title.dataset.mfSplitHref, article);
   });
 
-  const nextPageUrl = root => {
-    const links = root.querySelectorAll(
-      ".pagination a.pagination-next[href], .pagination a.pagination-forward[href], " +
-      ".pagination .pagination-next a[href], .pagination .pagination-forward a[href]",
-    );
-    const href = links[links.length - 1]?.getAttribute("href");
-    return href ? new URL(href, location.href).href : "";
-  };
-  let nextPage = nextPageUrl(document);
-  let loadingNextPage = false;
-  let pendingEntries = [];
-
-  const fetchNextPage = async () => {
-    if (!nextPage || loadingNextPage) return [];
-    loadingNextPage = true;
-    const url = nextPage;
-    try {
-      const response = await fetch(url, {
-        credentials: "same-origin",
-        headers: { "X-Requested-With": "Miniflux-Split-List" },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const page = new DOMParser().parseFromString(
-        htmlPolicy.createHTML(await response.text()),
-        "text/html",
-      );
-      const sourceList = page.querySelector(".items");
-      if (!sourceList) throw new Error("Entry list markup not found");
-      const knownIds = new Set(
-        [
-          ...list.querySelectorAll("article.entry-item[data-id]"),
-          ...pendingEntries,
-        ].map(node => node.dataset.id),
-      );
-      const entries = [...sourceList.querySelectorAll("article.entry-item")]
-        .filter(node => !knownIds.has(node.dataset.id))
-        .map(node => document.importNode(node, true));
-      if (!entries.length) throw new Error("Next page contained no new entries");
-      nextPage = nextPageUrl(page);
-      pendingEntries.push(...entries);
-      return entries;
-    } catch (error) {
-      showActionStatus(`加载更多未读失败：${error.message}`, true);
-      console.error("Miniflux split list could not load the next page:", error);
-      return [];
-    } finally {
-      loadingNextPage = false;
-    }
-  };
-  const loadNextPage = async () => {
-    if (!pendingEntries.length) {
-      const entries = await fetchNextPage();
-      if (!entries.length) return [];
-    }
-    const entry = pendingEntries.shift();
-    list.appendChild(entry);
-    decorateListEntries(list);
-    return [entry];
-  };
-
   let refreshingUnread = false;
-  let manageListViewport = false;
-  const fillListViewport = async () => {
-    let addedCount = 0;
-    while (pendingEntries.length || nextPage) {
-      const entries = await loadNextPage();
-      if (!entries.length) break;
-      const entry = entries[0];
-      if (list.children.length > 1 && list.scrollHeight > list.clientHeight) {
-        list.removeChild(entry);
-        pendingEntries.unshift(entry);
-        break;
-      }
-      addedCount += entries.length;
-    }
-    return addedCount;
-  };
-  const trimListViewport = () => {
-    while (list.children.length > 1 && list.scrollHeight > list.clientHeight) {
-      const entry = list.lastElementChild;
-      if (entry === selectedArticle || entry === cursorArticle) break;
-      list.removeChild(entry);
-      if (list.scrollHeight < list.clientHeight) {
-        list.appendChild(entry);
-        break;
-      }
-      pendingEntries.unshift(entry);
-    }
-  };
-  const fitListViewport = async () => {
-    if (!manageListViewport || refreshingUnread || !desktop.matches) return;
-    trimListViewport();
-    await fillListViewport();
-  };
-  syncListViewport = fitListViewport;
-  let fitListTimer;
-  addEventListener("resize", () => {
-    clearTimeout(fitListTimer);
-    fitListTimer = setTimeout(fitListViewport, 120);
-  });
-  const refreshUnreadList = async () => {
-    if (refreshingUnread || !desktop.matches) return null;
-    refreshingUnread = true;
-    const selectedId = selectedArticle?.dataset.id;
-    try {
-      const response = await fetch("/unread", {
-        credentials: "same-origin",
-        headers: { "X-Requested-With": "Miniflux-Split-List" },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const page = new DOMParser().parseFromString(
-        htmlPolicy.createHTML(await response.text()),
-        "text/html",
-      );
-      const sourceList = page.querySelector(".items");
-      if (!sourceList) throw new Error("Unread list markup not found");
-      const entries = [...sourceList.querySelectorAll("article.entry-item")]
-        .map(node => document.importNode(node, true));
-      list.replaceChildren();
-      pendingEntries = entries;
-      nextPage = nextPageUrl(page);
-      manageListViewport = true;
-      const loadedCount = await fillListViewport();
-      selectedArticle = selectedId
-        ? list.querySelector(`article.entry-item[data-id="${selectedId}"]`)
-        : null;
-      if (selectedArticle) {
-        selectedArticle.classList.add("mf-split-current");
-        selectedArticle.setAttribute("aria-selected", "true");
-      }
-      cursorArticle = null;
-      const cursorTarget = selectedArticle || visibleEntries()[0];
-      if (cursorTarget) setCursor(cursorTarget);
-      renderMarkAbove();
-      return loadedCount;
-    } catch (error) {
-      console.error("Miniflux split list could not refresh unread entries:", error);
-      throw error;
-    } finally {
-      refreshingUnread = false;
-    }
-  };
   markAbove.addEventListener("click", async () => {
     if (refreshingUnread || !desktop.matches) return;
     const targets = unreadAbove();
+    refreshingUnread = true;
     markAbove.disabled = true;
     markAbove.classList.add("mf-list-refreshing");
     try {
       if (targets.length) {
         await markEntriesRead(targets.map(article => +article.dataset.id));
       }
-      const loadedCount = await refreshUnreadList();
-      document.body.classList.add("mf-split-unread-only");
-      const markedText = targets.length ? `已将上方 ${targets.length} 条标记为已读；` : "";
-      showActionStatus(
-        loadedCount ? `${markedText}已加载 ${loadedCount} 条未读` : `${markedText}没有未读文章`,
-      );
+      location.assign("/unread");
     } catch (error) {
       showActionStatus(`更新未读列表失败：${error.message}`, true);
       console.error("Miniflux could not update the unread list:", error);
     } finally {
+      refreshingUnread = false;
       markAbove.disabled = false;
       markAbove.classList.remove("mf-list-refreshing");
       renderMarkAbove();
@@ -1063,11 +919,7 @@ ready(() => {
         return;
       }
       const entries = visibleEntries();
-      let next = entries[entries.indexOf(selectedArticle) + 1];
-      if (!next && nextPage) {
-        const added = await loadNextPage();
-        next = added.find(article => visibleEntries().includes(article));
-      }
+      const next = entries[entries.indexOf(selectedArticle) + 1];
       if (next) {
         setCursor(next, desktop.matches);
         const title = next.querySelector(".item-title a");
@@ -1083,13 +935,7 @@ ready(() => {
     const index = anchor
       ? entries.indexOf(anchor)
       : direction > 0 ? -1 : entries.length;
-    let target = entries[index + direction];
-    if (!target && direction > 0 && key === "j" &&
-        (pendingEntries.length || nextPage)) {
-      const added = await loadNextPage();
-      entries = visibleEntries();
-      target = added.find(article => entries.includes(article));
-    }
+    const target = entries[index + direction];
     if (!target) return;
     setCursor(target, desktop.matches);
     if (key === "n" || key === "p") return;

@@ -644,7 +644,7 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     height: auto !important;
     display: grid !important;
     grid-template-columns: 360px minmax(0, 768px) !important;
-    grid-template-rows: auto minmax(calc(100vh - var(--mf-split-header-height, 52px)), 1fr) !important;
+    grid-template-rows: auto minmax(calc(100dvh - var(--mf-split-header-height, 40px)), 1fr) !important;
     align-items: start !important;
     overflow: visible !important;
   }
@@ -677,12 +677,12 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     grid-column: 1 !important;
     grid-row: 2 !important;
     display: grid !important;
-    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    grid-template-rows: minmax(0, 1fr) 32px !important;
     min-width: 0 !important;
     position: sticky !important;
     top: var(--mf-split-header-height, 52px) !important;
     align-self: start !important;
-    height: calc(100vh - var(--mf-split-header-height, 52px)) !important;
+    height: calc(100dvh - var(--mf-split-header-height, 40px)) !important;
     overflow: hidden !important;
   }
 
@@ -693,7 +693,14 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   body.mf-split-active > main .pagination {
-    display: none !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    height: 32px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    align-items: center !important;
+    border-top: 1px solid var(--bg4) !important;
+    background: var(--bg) !important;
   }
 
   body.mf-split-active .items.hide-read-items article.entry-item {
@@ -802,16 +809,26 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   }
 
   .mf-split-action-status {
-    min-height: 0 !important;
-    padding: 0 14px !important;
+    position: fixed !important;
+    top: calc(var(--mf-split-header-height, 40px) + 10px) !important;
+    right: max(16px, calc((100vw - 1128px) / 2 + 16px)) !important;
+    z-index: 20 !important;
+    box-sizing: border-box !important;
+    max-width: min(360px, calc(100vw - 32px)) !important;
+    padding: 8px 12px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 7px !important;
+    background: var(--bg2) !important;
     color: var(--text2) !important;
     font-size: 12px !important;
+    line-height: 1.4 !important;
     text-align: center !important;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 12%) !important;
+    pointer-events: none !important;
   }
 
-  .mf-split-action-status:not(:empty) {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+  .mf-split-action-status[hidden] {
+    display: none !important;
   }
 
   .mf-split-action-status.mf-split-action-error {
@@ -876,8 +893,11 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   body.mf-split-active article.entry-item {
     box-sizing: border-box !important;
     display: flex !important;
+    height: 32px !important;
     align-items: center !important;
     min-height: 32px !important;
+    max-height: 32px !important;
+    overflow: hidden !important;
     padding-top: 4px !important;
     padding-bottom: 4px !important;
   }
@@ -1124,8 +1144,11 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
   body.mf-split-active article.entry-item {
     box-sizing: border-box !important;
     display: flex !important;
+    height: 32px !important;
     min-height: 32px !important;
+    max-height: 32px !important;
     align-items: center !important;
+    overflow: hidden !important;
     padding: 4px 8px 4px 9px !important;
   }
 

@@ -27,8 +27,8 @@ Place your own here. Suggested shots:
   ellipsis titles, right-aligned timestamps, and a 3-px unread marker
 - On-demand search and All / Unread / Starred filters remain available through
   `/`; the concentric-ring list action marks unread entries above the current
-  selection as read, refreshes unread entries, and buffers additional pages,
-  appending only entries that fit in the list viewport as it resizes
+  selection as read, then reloads the canonical unread page; failures appear in
+  a fixed toast without changing the list height
 - Native `mark page as read` button relocated into the bottom pagination row (saves a footer row)
 - `back to list` shortcut injected into entry-detail pagination
 - Desktop split pane at 1024px and wider: compact 360px entry list beside the
@@ -39,16 +39,15 @@ Place your own here. Suggested shots:
 - The bottom reader pagination retains a centered `back to list` link that
   appears only while the sidebar is collapsed, then expands the sidebar,
   clears the reader, and focuses the selected entry
-- The desktop list renders entries in its own scroll region without a bottom
-  load-more control; the combined list action fills short refreshed lists one
-  entry at a time from buffered unread pages and returns excess tail entries to
-  the buffer instead of introducing a scrollbar
+- The list occupies the viewport space between the 40px header and 32px native
+  pagination row; every entry is exactly 32px high on desktop and narrow
+  screens, and page changes use Miniflux's native pagination without prefetching
 - Read entries are muted instead of removed, while the active highlight follows
   the selected entry
 - Article content uses the browser document scrollbar instead of a nested
   reader scrollbar
-- `J` / `K` move to and open the next / previous visible entry; `J`
-  automatically fetches the next unread page when it reaches a loaded boundary
+- `J` / `K` move to and open the next / previous visible entry on the current
+  native Miniflux page
 - `N` / `P` move the independent list cursor without loading an article, and
   `Space` opens the cursor entry when no article is selected; while reading it
   pages through the article and opens the next item only after reaching the end
@@ -98,7 +97,7 @@ To keep emoji: delete the unicode-emoji walker block in module 6 of `custom.js` 
 
 Both files are independent. CSS works on its own. JS adds the relocations,
 source chips, theme probe, the combined mark-above and refresh action,
-reading-mode DOM cleanup, and desktop split-pane loading.
+reading-mode DOM cleanup, and desktop split-pane behavior.
 
 ### Database-side install (optional)
 
