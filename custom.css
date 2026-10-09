@@ -306,6 +306,24 @@ article.entry-item .item-title {
   margin: 0 !important;
   padding: 0 !important;
 }
+article.entry-item .item-header {
+  display: flex !important;
+  min-width: 0 !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+article.entry-item .item-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+article.entry-item .mf-entry-time {
+  flex: 0 0 auto !important;
+  color: var(--text3) !important;
+  font-size: 10px !important;
+  font-variant-numeric: tabular-nums !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
 
 /* 字母方块（替代 favicon）：绝对定位垂直居中，不参与 ellipsis 流 */
 article.entry-item .item-title a[data-icon-letter]::before {
@@ -697,6 +715,10 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     box-shadow: inset -3px 0 var(--accent) !important;
   }
 
+  body.mf-split-active article.entry-item.mf-split-current::before {
+    background: transparent !important;
+  }
+
   #mf-split-reader {
     display: block !important;
     grid-column: 2 !important;
@@ -954,6 +976,10 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     stroke-linejoin: round !important;
   }
 
+  #mf-split-title .mf-reader-mobile-back {
+    display: none !important;
+  }
+
   #mf-split-reader .mf-split-reader-inner {
     width: min(680px, calc(100% - 48px)) !important;
     padding-top: 26px !important;
@@ -1091,5 +1117,172 @@ article.entry-item.item-status-read .item-title a:is(:hover, :focus, :active) {
     margin-left: auto !important;
     color: var(--text3) !important;
     font-size: 10px !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  body.mf-split-active article.entry-item {
+    box-sizing: border-box !important;
+    display: flex !important;
+    min-height: 32px !important;
+    align-items: center !important;
+    padding: 4px 8px 4px 9px !important;
+  }
+
+  body.mf-split-active article.entry-item .item-header {
+    flex: 1 1 auto !important;
+  }
+
+  body.mf-split-active article.entry-item .item-title a {
+    padding-left: 24px !important;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+  }
+
+  body.mf-split-active article.entry-item .item-title a[data-icon-letter]::before {
+    width: 17px !important;
+    height: 17px !important;
+    border-radius: 4px !important;
+    font-size: 9px !important;
+    line-height: 17px !important;
+  }
+
+  body.mf-split-active article.entry-item.mf-split-current {
+    background: var(--accent-dim) !important;
+    box-shadow: inset 2px 0 var(--accent) !important;
+  }
+
+  body.mf-split-active article.entry-item.mf-split-current::before {
+    background: transparent !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading {
+    width: 100% !important;
+    max-width: none !important;
+    overflow-x: hidden !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading > .header,
+  body.mf-split-active.mf-mobile-reading > main {
+    display: none !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title {
+    position: sticky !important;
+    z-index: 4 !important;
+    top: 0 !important;
+    display: flex !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    align-items: center !important;
+    border-bottom: 1px solid var(--bg4) !important;
+    background: var(--bg) !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title .mf-split-title-bar {
+    display: flex !important;
+    width: 100% !important;
+    padding: 0 8px !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title .mf-reader-toolbar-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title .mf-reader-toolbar-spacer {
+    flex: 1 1 auto !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title :is(
+    .mf-reader-toolbar-button,
+    .mf-split-toggle
+  ) {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: var(--text2) !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title .mf-split-toggle {
+    display: none !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-title :is(
+    .mf-reader-toolbar-button,
+    .mf-split-toggle
+  ) svg {
+    width: 16px !important;
+    height: 16px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.7 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader {
+    display: block !important;
+    min-width: 0 !important;
+    min-height: calc(100vh - 40px) !important;
+    background: var(--bg) !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .mf-split-reader-inner {
+    width: min(680px, calc(100% - 28px)) !important;
+    min-height: calc(100vh - 40px) !important;
+    margin: 0 auto !important;
+    padding: 22px 0 72px !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .entry {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .entry-header {
+    justify-content: center !important;
+    margin-bottom: 18px !important;
+    padding-bottom: 11px !important;
+    border-bottom: 1px solid var(--bg3) !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .entry-header h1 {
+    margin-bottom: 5px !important;
+    text-align: center !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .entry-header h1,
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .entry-header h1 a {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.35 !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader :is(
+    .entry-header .entry-actions,
+    .pagination-entry-top
+  ) {
+    display: none !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .entry-content {
+    font-size: 16px !important;
+    line-height: 1.72 !important;
+  }
+
+  body.mf-split-active.mf-mobile-reading #mf-split-reader .mf-split-back-wrap {
+    display: none !important;
   }
 }

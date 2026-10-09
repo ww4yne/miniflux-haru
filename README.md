@@ -23,7 +23,8 @@ Place your own here. Suggested shots:
 - 13-variable palette (4 background tiers, 3 text tiers, accent + hover/dim/border) auto-tracking light/dark
 - Tracks Miniflux's actual theme (not just OS preference) via a runtime background-color probe
 - Compact header: logo left, SVG-only icon menu right, single row on every viewport
-- Compact entry list: first-letter source chip replacing favicons, single-line ellipsis titles, 3-px accent unread bar on the left
+- Compact entry list: first-letter source chip replacing favicons, single-line
+  ellipsis titles, right-aligned timestamps, and a 3-px unread marker
 - On-demand search and All / Unread / Starred filters remain available through
   `/`; the concentric-ring list action marks unread entries above the current
   selection as read, refreshes unread entries, and buffers additional pages,
@@ -49,9 +50,15 @@ Place your own here. Suggested shots:
 - `J` / `K` move to and open the next / previous visible entry; `J`
   automatically fetches the next unread page when it reaches a loaded boundary
 - `N` / `P` move the independent list cursor without loading an article, and
-  `Space` opens the cursor entry
+  `Space` opens the cursor entry when no article is selected; while reading it
+  pages through the article and opens the next item only after reaching the end
 - `M` toggles read state, `S` toggles starred state, `B` collapses the list,
   and `/` opens search
+- Below 1024px the same queue becomes a stable single-pane workflow: opening
+  an item replaces the list with a full-width reader, and the reader toolbar's
+  back button restores the prior cursor and list position
+- The active item uses one left accent and one subtle row background; its
+  unread marker is suppressed to avoid a doubled highlight
 - The split reader keeps the article title in the document flow, centered at a
   compact 21px rather than duplicating it in the toolbar
 

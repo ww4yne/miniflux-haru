@@ -359,6 +359,12 @@ ready(() => {
     "上一篇 (K)",
     ["m14 6-6 6 6 6"],
   );
+  const mobileBackButton = toolbarButton(
+    "mf-reader-mobile-back",
+    "返回列表",
+    ["m15 6-6 6 6 6"],
+  );
+  mobileBackButton.disabled = false;
   const nextButton = toolbarButton(
     "mf-reader-next",
     "下一篇 (J)",
@@ -388,7 +394,7 @@ ready(() => {
   const toolbarSpacer = Object.assign(document.createElement("span"), {
     className: "mf-reader-toolbar-spacer",
   });
-  navigationGroup.append(toggle, previousButton, nextButton);
+  navigationGroup.append(mobileBackButton, toggle, previousButton, nextButton);
   actionGroup.append(readButton, starButton, originalButton);
   titleBar.append(navigationGroup, toolbarSpacer, actionGroup);
 
@@ -423,6 +429,14 @@ ready(() => {
   toggle.addEventListener("click", () => {
     document.body.classList.toggle("mf-split-collapsed");
     renderToggle();
+  });
+  mobileBackButton.addEventListener("click", () => {
+    document.body.classList.remove("mf-mobile-reading");
+    const target = cursorArticle || selectedArticle;
+    target?.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      target?.scrollIntoView({ block: "nearest" });
+    });
   });
   renderToggle();
   renderMarkAbove();
@@ -713,6 +727,7 @@ ready(() => {
       if (article && entry.querySelector("[data-toggle-status]")?.dataset.value === "read") {
         article.classList.replace("item-status-unread", "item-status-read");
       }
+      if (!desktop.matches) document.body.classList.add("mf-mobile-reading");
       syncReaderToolbar();
     } catch (error) {
       if (timedOut) {
@@ -730,31 +745,20 @@ ready(() => {
   const configureTitleLinks = () => {
     for (const title of list.querySelectorAll("article.entry-item .item-title a")) {
       const article = title.closest("article.entry-item");
-      if (desktop.matches) {
-        if (!title.dataset.mfSplitHref) {
-          title.dataset.mfSplitHref = title.href;
-          title.dataset.mfSplitTarget = title.getAttribute("target") || "";
-        }
-        title.removeAttribute("href");
-        title.removeAttribute("target");
-        title.removeAttribute("role");
-        title.tabIndex = -1;
-        article.setAttribute("role", "option");
-        article.setAttribute(
-          "aria-selected",
-          String(article.classList.contains("mf-split-current")),
-        );
-        article.tabIndex = 0;
-      } else if (title.dataset.mfSplitHref) {
-        title.href = title.dataset.mfSplitHref;
-        if (title.dataset.mfSplitTarget) title.target = title.dataset.mfSplitTarget;
-        else title.removeAttribute("target");
-        title.removeAttribute("role");
-        title.removeAttribute("tabindex");
-        article.removeAttribute("role");
-        article.removeAttribute("aria-selected");
-        article.removeAttribute("tabindex");
+      if (!title.dataset.mfSplitHref) {
+        title.dataset.mfSplitHref = title.href;
+        title.dataset.mfSplitTarget = title.getAttribute("target") || "";
       }
+      title.removeAttribute("href");
+      title.removeAttribute("target");
+      title.removeAttribute("role");
+      title.tabIndex = -1;
+      article.setAttribute("role", "option");
+      article.setAttribute(
+        "aria-selected",
+        String(article.classList.contains("mf-split-current")),
+      );
+      article.tabIndex = 0;
     }
   };
   const decorateListEntries = root => {
@@ -765,16 +769,35 @@ ready(() => {
         const source = article.querySelector(".item-meta-info-title a")?.textContent.trim();
         if (title && source) title.dataset.iconLetter = source[0];
       }
+      if (!article.querySelector(".mf-entry-time")) {
+        const timestamp = article.querySelector(
+          ".item-meta-info-timestamp time",
+        )?.textContent.trim();
+        const header = article.querySelector(".item-header");
+        if (timestamp && header) {
+          header.appendChild(Object.assign(document.createElement("time"), {
+            className: "mf-entry-time",
+            textContent: timestamp,
+          }));
+        }
+      }
     }
     configureTitleLinks();
     applyListFilter();
   };
   decorateListEntries(list);
-  desktop.addEventListener("change", configureTitleLinks);
+  desktop.addEventListener("change", () => {
+    document.body.classList.remove("mf-mobile-reading");
+    configureTitleLinks();
+  });
 
   const visibleEntries = () =>
     [...list.querySelectorAll("article.entry-item")]
-      .filter(article => article.getClientRects().length > 0);
+      .filter(article =>
+        !article.classList.contains("mf-list-filter-hidden") &&
+        !(document.body.classList.contains("mf-split-unread-only") &&
+          article.classList.contains("item-status-read")),
+      );
   const setCursor = (article, focus = false) => {
     if (!article) return;
     cursorArticle?.classList.remove("mf-list-cursor");
@@ -786,7 +809,7 @@ ready(() => {
 
   list.addEventListener("click", event => {
     const article = event.target.closest("article.entry-item");
-    if (!article || !desktop.matches) return;
+    if (!article) return;
     const title = article.querySelector(".item-title a");
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -798,14 +821,14 @@ ready(() => {
   }, true);
   list.addEventListener("auxclick", event => {
     const article = event.target.closest("article.entry-item");
-    if (!article || !desktop.matches || event.button !== 1) return;
+    if (!article || event.button !== 1) return;
     const title = article.querySelector(".item-title a");
     event.preventDefault();
     event.stopImmediatePropagation();
     window.open(title.dataset.mfSplitHref, "_blank", "noreferrer");
   }, true);
   list.addEventListener("keydown", event => {
-    if (!desktop.matches || event.key !== "Enter") return;
+    if (event.key !== "Enter") return;
     const article = event.target.closest("article.entry-item");
     if (!article) return;
     event.preventDefault();
@@ -826,7 +849,7 @@ ready(() => {
   let pendingEntries = [];
 
   const fetchNextPage = async () => {
-    if (!nextPage || loadingNextPage || !desktop.matches) return [];
+    if (!nextPage || loadingNextPage) return [];
     loadingNextPage = true;
     const url = nextPage;
     try {
@@ -981,7 +1004,7 @@ ready(() => {
   });
 
   document.addEventListener("keydown", async event => {
-    if (!desktop.matches || event.defaultPrevented) return;
+    if (event.defaultPrevented) return;
     if (event.target === searchInput) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -989,10 +1012,18 @@ ready(() => {
       }
       return;
     }
-    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
+    if (event.metaKey || event.ctrlKey || event.altKey ||
         event.target.closest("input, textarea, select, button, a, [contenteditable]")) return;
     const key = event.key.toLowerCase();
+    if (key === " " && event.shiftKey) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      scrollBy({ top: -innerHeight * 0.82, behavior: "auto" });
+      return;
+    }
+    if (event.shiftKey) return;
     if (key === "/") {
+      if (!desktop.matches) return;
       event.preventDefault();
       openSearch();
       return;
@@ -1019,9 +1050,29 @@ ready(() => {
     event.stopImmediatePropagation();
 
     if (key === " ") {
-      if (!cursorArticle?.getClientRects().length) return;
-      const title = cursorArticle.querySelector(".item-title a");
-      await load(title.dataset.mfSplitHref, cursorArticle);
+      if (!selectedArticle) {
+        if (!cursorArticle?.getClientRects().length) return;
+        const title = cursorArticle.querySelector(".item-title a");
+        await load(title.dataset.mfSplitHref, cursorArticle);
+        return;
+      }
+      const atEnd = scrollY + innerHeight >=
+        document.documentElement.scrollHeight - 8;
+      if (!atEnd) {
+        scrollBy({ top: innerHeight * 0.82, behavior: "auto" });
+        return;
+      }
+      const entries = visibleEntries();
+      let next = entries[entries.indexOf(selectedArticle) + 1];
+      if (!next && nextPage) {
+        const added = await loadNextPage();
+        next = added.find(article => visibleEntries().includes(article));
+      }
+      if (next) {
+        setCursor(next, desktop.matches);
+        const title = next.querySelector(".item-title a");
+        await load(title.dataset.mfSplitHref, next);
+      }
       return;
     }
     const direction = key === "j" || key === "n" ? 1 : -1;
@@ -1040,14 +1091,14 @@ ready(() => {
       target = added.find(article => entries.includes(article));
     }
     if (!target) return;
-    setCursor(target, true);
+    setCursor(target, desktop.matches);
     if (key === "n" || key === "p") return;
     const title = target.querySelector(".item-title a");
     await load(title.dataset.mfSplitHref, target);
   }, true);
 
   reader.addEventListener("click", event => {
-    if (!desktop.matches || event.metaKey || event.ctrlKey ||
+    if (event.metaKey || event.ctrlKey ||
         event.shiftKey || event.altKey) return;
     const pager = event.target.closest("#mf-split-reader .pagination a[data-page]");
     if (!pager) return;
