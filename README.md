@@ -1,13 +1,13 @@
 # miniflux-haru
 
-A personal Miniflux 2.3/2.4 custom theme + reading-mode polish, paired with a Claude/Haru-style warm palette.
+A personal Miniflux v2.4 custom theme + reading-mode polish, paired with a Claude/Haru-style warm palette.
 
 Two files. Paste them into **Settings → Integration → Custom CSS / Custom JavaScript**. That's it.
 
 - `custom.css` — palette, layout, compact list, reading mode (article body normalization)
-- `custom.js`  — seven small modules (no framework, no deps)
+- `custom.js`  — five small modules (no framework, no deps)
 
-Tested on Miniflux 2.3.1 and 2.4.x, iPhone PWA + desktop browsers.
+Tested on Miniflux 2.4.x, iPhone PWA + desktop browsers.
 
 ## Screenshots
 
@@ -23,47 +23,13 @@ Place your own here. Suggested shots:
 - 13-variable palette (4 background tiers, 3 text tiers, accent + hover/dim/border) auto-tracking light/dark
 - Tracks Miniflux's actual theme (not just OS preference) via a runtime background-color probe
 - Compact header: logo left, SVG-only icon menu right, single row on every viewport
-- Compact entry list: first-letter source chip replacing favicons, single-line
-  ellipsis titles, right-aligned timestamps, and a 3-px unread marker
-- On-demand search and All / Unread / Starred filters remain available through
-  `/`; the concentric-ring list action marks unread entries above the current
-  selection as read, then reloads the canonical unread page; failures appear in
-  a fixed toast without changing the list height
+- Compact entry list: first-letter source chip replacing favicons, single-line ellipsis titles, 3-px accent unread bar on the left
 - Native `mark page as read` button relocated into the bottom pagination row (saves a footer row)
 - `back to list` shortcut injected into entry-detail pagination
-- Desktop split pane at 1024px and wider: compact 360px entry list beside the
-  existing 768px reading layout, centered as one unit with independent scrolling
-- A 40px reader toolbar provides sidebar collapse, previous / next entry,
-  read, starred, and original-article actions while retaining Miniflux's
-  native action state
-- The bottom reader pagination retains a centered `back to list` link that
-  appears only while the sidebar is collapsed, then expands the sidebar,
-  clears the reader, and focuses the selected entry
-- The list occupies the viewport space between the 40px header and 32px native
-  pagination row; every entry is exactly 32px high on desktop and narrow
-  screens, and page changes use Miniflux's native pagination without prefetching
-- Read entries are muted instead of removed, while the active highlight follows
-  the selected entry
-- Article content uses the browser document scrollbar instead of a nested
-  reader scrollbar
-- `J` / `K` move to and open the next / previous visible entry on the current
-  native Miniflux page
-- `N` / `P` move the independent list cursor without loading an article, and
-  `Space` opens the cursor entry when no article is selected; while reading it
-  pages through the article and opens the next item only after reaching the end
-- `M` toggles read state, `S` toggles starred state, `B` collapses the list,
-  and `/` opens search
-- Below 1024px the same queue becomes a stable single-pane workflow: opening
-  an item replaces the list with a full-width reader, and the reader toolbar's
-  back button restores the prior cursor and list position
-- The active item uses one left accent and one subtle row background; its
-  unread marker is suppressed to avoid a doubled highlight
-- The split reader keeps the article title in the document flow, centered at a
-  compact 21px rather than duplicating it in the toolbar
 
 ### Reading mode (article body)
 
-- 16px / 1.72 split-reader scale, with the existing larger mobile scale retained
+- 16/17-px reading scale with 1.75/1.8 line-height
 - 2-em first-line indent on top-level paragraphs (CJK convention), suppressed inside lists/blockquotes/cells
 - `text-align: justify` with `inter-ideograph` for Chinese reading
 - Headings normalized to four sizes (20 / 18 / 16 / 15) regardless of source markup
@@ -95,9 +61,7 @@ To keep emoji: delete the unicode-emoji walker block in module 6 of `custom.js` 
 3. Paste `custom.js` into **Custom JavaScript**
 4. Save. Hard-refresh once.
 
-Both files are independent. CSS works on its own. JS adds the relocations,
-source chips, theme probe, the combined mark-above and refresh action,
-reading-mode DOM cleanup, and desktop split-pane behavior.
+Both files are independent. CSS works on its own. JS adds the relocations, source chips, theme probe, click-to-mark-above, and reading-mode DOM cleanup.
 
 ### Database-side install (optional)
 
@@ -163,9 +127,8 @@ Light/dark resolution priority:
 | 2 | `theme probe` | reads `.header` computed background, toggles `mf-dark`/`mf-light` on `<html>` |
 | 3 | `mark-page relocate` | moves the native `[data-action="markPageAsRead"]` button into the bottom `.pagination` row |
 | 4 | `back-to-list button` | injects a centered link on entry-detail pagination; intercepts `pushState` for adjacent-entry navigation |
-| 5 | `batch mark-read API` | posts an explicit set of entry IDs to `entry/status read`; used by the desktop toolbar action |
+| 5 | `auto-mark-above on click` | when you tap an article title, posts `entry/status read` for all unread entries above it in the current DOM order; respects user's sort order (no race with redirect, uses `keepalive: true`) |
 | 6 | `entry-content cleanup` | inline-style strip, empty `<p>` removal, unicode emoji walker (skips `<pre>/<code>`) |
-| 7 | `desktop split pane` | at ≥1024px, adds a combined mark-above and unread-refresh action that fills the list viewport, boundary-driven next-page loading, an independent keyboard cursor, on-demand search and filters, and split navigation |
 
 ## License
 
